@@ -1,7 +1,7 @@
-# Live Walls for macOS using Plash
+# Live Wallpapers for macOS using Plash
 
 ### A script to set up wallpapers for your Mac that pan and smoothly transition, for a "Live Wallpaper" look.
-
+##### Have a bunch of photos that you set as your desktop wallpaper, only to get upset that they 1) transition abruptly and 2) don't fit the aspect ratio of your screen making you lose a bunch of the image? This simple script fixes that - it allows you to pan your images so that you see more of them, and transitions smoothly from one to the next - all while preserving the your images' quality. Unlike other solutions, which turn photos into videos so they can pan or transition, and thereby lose quality, this script preserves your images as actual images, and simply applies CSS to them to make them move.
 ---
 
 ## Setup
