@@ -46,8 +46,9 @@ find images -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "
 ### 5. Set as Wallpaper in Plash
 1. Click the **Plash icon** in your macOS menu bar.
 2. Select **Add Website…**.
-3. Click **Open…** and select your `live-walls` *folder* (that contains the index.html).
+3. Click **Open…** and select your `live-walls` *folder* (containing `index.html`).
 4. Click **Save**.
+5. In Plash Settings, enable **"Extend below menu bar"** (or run `defaults write com.sindresorhus.Plash extendPlashBelowMenuBar -bool true`) so the wallpaper extends seamlessly edge-to-edge behind the menu bar with zero gaps.
 
 Your desktop will now cycle through your photos with smooth diagonal pans and transitions!
 
