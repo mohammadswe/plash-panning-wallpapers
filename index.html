@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Wallpaper</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #000;
+    }
+    #viewport {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+    }
+    .layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      /* Ensure image is overscaled slightly in both dimensions to allow diagonal headroom */
+      min-width: 110vw;
+      min-height: 110vh;
+      width: auto;
+      height: 110vh;
+      
+      /* GPU promotion & subpixel anti-aliasing */
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      image-rendering: -webkit-optimize-contrast;
+      object-fit: cover;
+
+      opacity: 0;
+      transition: opacity 3s ease-in-out;
+    }
+    .layer.active {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport">
+    <img id="layerA" class="layer" alt="Wallpaper A" />
+    <img id="layerB" class="layer" alt="Wallpaper B" />
+  </div>
+
+  <script>
+    // Paste your image paths here (relative to index.html)
+    // Run the command from README.md to generate and copy this list automatically!
+    const images = [
+      "images/wallpaper1.jpg",
+      "images/wallpaper2.jpg",
+      "images/wallpaper3.jpg"
+    ];
+
+    const INTERVAL_MS = 60000; // Time each photo is shown (default: 60 seconds)
+    const FADE_MS = 3000;      // Crossfade transition duration (3 seconds)
+
+    let currentLayer = document.getElementById("layerA");
+    let nextLayer = document.getElementById("layerB");
+    let lastIndex = -1;
+
+    function getRandomImage() {
+      if (!images || images.length === 0) return "";
+      if (images.length === 1) return images[0];
+      let idx;
+      do {
+        idx = Math.floor(Math.random() * images.length);
+      } while (idx === lastIndex);
+      lastIndex = idx;
+      return images[idx];
+    }
+
+    function calculateDiagonalVector(imgEl) {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      
+      // Calculate true rendered dimension after 110vh height clamp
+      const renderedHeight = vh * 1.10;
+      const aspect = imgEl.naturalWidth / imgEl.naturalHeight;
+      const renderedWidth = Math.max(renderedHeight * aspect, vw * 1.10);
+      
+      // Max allowable translation before black bars appear
+      const maxDeltaX = renderedWidth - vw;
+      const maxDeltaY = renderedHeight - vh;
+      
+      // Random diagonal: choose start and end corners
+      // (X: 0 = aligned left, -maxDeltaX = aligned right)
+      // (Y: 0 = aligned top, -maxDeltaY = aligned bottom)
+      const startLeft = Math.random() > 0.5;
+      const startTop  = Math.random() > 0.5;
+      
+      const startX = startLeft ? 0 : -maxDeltaX;
+      const endX   = startLeft ? -maxDeltaX : 0;
+      
+      const startY = startTop ? 0 : -maxDeltaY;
+      const endY   = startTop ? -maxDeltaY : 0;
+      
+      return {
+        from: `translate3d(${startX}px, ${startY}px, 0)`,
+        to:   `translate3d(${endX}px, ${endY}px, 0)`
+      };
+    }
+
+    function cycleWallpaper() {
+      const targetSrc = getRandomImage();
+      if (!targetSrc) return;
+
+      nextLayer.onload = () => {
+        const { from, to } = calculateDiagonalVector(nextLayer);
+
+        // Run animation via Web Animations API directly on the GPU compositor
+        const panAnimation = nextLayer.animate([
+          { transform: from },
+          { transform: to }
+        ], {
+          duration: INTERVAL_MS + FADE_MS,
+          easing: "linear",
+          fill: "forwards"
+        });
+
+        // Crossfade
+        nextLayer.classList.add("active");
+        currentLayer.classList.remove("active");
+
+        // Swap references and cancel dead animation after fade
+        setTimeout(() => {
+          const oldAnim = currentLayer.getAnimations()[0];
+          if (oldAnim) oldAnim.cancel();
+
+          const temp = currentLayer;
+          currentLayer = nextLayer;
+          nextLayer = temp;
+        }, FADE_MS);
+      };
+      nextLayer.src = targetSrc;
+    }
+
+    // Initialize first photo immediately
+    cycleWallpaper();
+
+    // Loop every INTERVAL_MS
+    setInterval(cycleWallpaper, INTERVAL_MS);
+  </script>
+</body>
+</html>

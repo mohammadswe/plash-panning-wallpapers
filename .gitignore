@@ -1,0 +1,16 @@
+# Photos and converted wallpaper directories
+converted/
+images/
+photos/
+
+# User-specific local files
+index.personal.html
+*.local.html
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
