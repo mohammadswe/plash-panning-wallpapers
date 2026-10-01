@@ -59,3 +59,21 @@ Inside `index.html`, you can tweak these settings:
 - **Display Duration**: `const INTERVAL_MS = 60000;` (display each wallpaper for 60 seconds).
 - **Transition Duration**: `const FADE_MS = 3000;` (3-second crossfade).
 
+---
+
+## Dynamic macOS Menu Bar Tinting (Optional)
+
+By default, the macOS menu bar samples the underlying native desktop wallpaper for vibrancy and tinting. To make your macOS menu bar automatically adapt to the color theme of whichever wallpaper Plash is currently displaying, start the included sync helper:
+
+```bash
+./start_sync.sh
+```
+
+Whenever Plash transitions to a new photo, this lightweight background helper syncs the native desktop wallpaper behind Plash to match, prompting macOS WindowServer to dynamically tint the top menu bar to that photo's color palette.
+
+To stop the sync helper:
+```bash
+./stop_sync.sh
+```
+
+
