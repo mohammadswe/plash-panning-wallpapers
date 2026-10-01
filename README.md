@@ -1,18 +1,18 @@
-# Live Walls for macOS (Plash)
+# Live Walls for macOS using Plash
 
-A lightweight, GPU-accelerated dynamic wallpaper for macOS that smoothly pans (Ken Burns effect) and crossfades through your photo collection using [Plash](https://github.com/sindresorhus/plash).
+### A script to set up wallpapers for your Mac that pan and smoothly transition, for a "Live Wallpaper" look.
 
 ---
 
-## Quick Setup
+## Setup
 
 ### 1. Install Plash
-Download and install [Plash](https://github.com/sindresorhus/plash) (free on the Mac App Store or GitHub Releases).
+Download and install [Plash](https://github.com/sindresorhus/plash) (free on the App Store).
 
 ### 2. Prepare Your Folder
 1. Download `index.html` from this repository.
-2. Create a folder anywhere on your Mac (e.g. `~/Pictures/live-walls`).
-3. Place `index.html` inside this folder.
+2. Create a parent folder anywhere on your Mac (e.g. `~/Pictures/live-walls`) that will hold both your images and the `index.html`.
+3. Place `index.html` inside that folder.
 4. Create an `images` subfolder inside it and add your wallpaper photos (`.jpg`, `.png`, `.webp`, etc.).
 
 Your folder structure will look like this:
@@ -46,8 +46,8 @@ find images -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "
 ### 5. Set as Wallpaper in Plash
 1. Click the **Plash icon** in your macOS menu bar.
 2. Select **Add Website…**.
-3. Click **Open…** and select your `live-walls` folder.
-4. Click **Save** (or check the website).
+3. Click **Open…** and select your `live-walls` *folder* (that contains the index.html).
+4. Click **Save**.
 
 Your desktop will now cycle through your photos with smooth diagonal pans and transitions!
 
@@ -58,3 +58,4 @@ Your desktop will now cycle through your photos with smooth diagonal pans and tr
 Inside `index.html`, you can tweak these settings:
 - **Display Duration**: `const INTERVAL_MS = 60000;` (display each wallpaper for 60 seconds).
 - **Transition Duration**: `const FADE_MS = 3000;` (3-second crossfade).
+
