@@ -59,18 +59,40 @@ Your desktop will now cycle through your photos with smooth diagonal pans and tr
 Inside `index.html`, you can tweak these settings:
 - **Display Duration**: `const INTERVAL_MS = 60000;` (display each wallpaper for 60 seconds).
 - **Transition Duration**: `const FADE_MS = 3000;` (3-second crossfade).
+- **Menu Bar Glass Styling**:
+  ```css
+  :root {
+    --menubar-height: max(30px, env(safe-area-inset-top)); /* Bar height (30px or notch) */
+    --menubar-blur: 28px;                                 /* Frosted glass blur radius */
+    --menubar-saturate: 180%;                             /* Color vibrancy boost */
+    --menubar-tint-light: rgba(255, 255, 255, 0.20);      /* Light mode glass tint */
+    --menubar-tint-dark: rgba(20, 20, 20, 0.32);          /* Dark mode glass tint */
+  }
+  ```
 
 ---
 
-## Dynamic macOS Menu Bar Tinting (Optional)
+## Simulated Frosted Glass Menu Bar (Seamless Transitions)
 
-By default, the macOS menu bar samples the underlying native desktop wallpaper for vibrancy and tinting. To make your macOS menu bar automatically adapt to the color theme of whichever wallpaper Plash is currently displaying, start the included sync helper:
+If you turn **"Show menu bar background"** to **OFF** in macOS Menu Bar settings, your native macOS menu bar becomes fully transparent. 
 
-```bash
-./start_sync.sh
-```
+`index.html` includes a hardware-accelerated frosted glass overlay (`#menubar-glass`) positioned directly behind your macOS menu bar. 
 
-Whenever Plash transitions to a new photo, this lightweight background helper syncs the native desktop wallpaper behind Plash to match, prompting macOS WindowServer to dynamically tint the top menu bar to that photo's color palette.
+### Why this is better:
+- **Buttery-Smooth Crossfades**: The blur and tint seamlessly fade with the 3-second wallpaper transition (no abrupt color snap).
+- **Pan-Aware**: Stays locked at the top of your screen even while photos pan diagonally underneath it.
+- **Zero Background Daemons**: Runs purely in the GPU compositor in Plash without needing python sync scripts or osascript wallpaper changes.
+
+---
+
+## Native Desktop Wallpaper Sync (Optional)
+
+If you also want your underlying native desktop picture (visible in Mission Control or Spaces) to match Plash, you can enable native syncing:
+1. In `index.html`, set `const SYNC_NATIVE_WALLPAPER = true;`
+2. Start the sync helper:
+   ```bash
+   ./start_sync.sh
+   ```
 
 To stop the sync helper:
 ```bash
