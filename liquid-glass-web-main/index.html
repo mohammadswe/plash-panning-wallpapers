@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Liquid Glass — 웹 리퀴드 글라스 엔진</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=SF+Pro+Display:wght@400;600;700&display=swap"
+    />
+    <!-- Pretendard: clean Korean + Latin typeface so the Korean copy renders
+         consistently across devices (Inter/SF Pro have no Korean glyphs). -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <link rel="stylesheet" href="/src/styles/liquid-glass.css" />
+    <link rel="stylesheet" href="/demo/styles.css" />
+  </head>
+  <body>
+    <!-- Refraction scene: a <canvas> painted with the page gradient. Every glass
+         box refracts it via backdropSource. A canvas is directly uploadable to a
+         WebGL texture (taint-free), so the GPU cross-browser path works. -->
+    <canvas id="lg-scene" class="lg-scene" aria-hidden="true"></canvas>
+
+    <!-- iOS 26 Liquid Morphing Gooey Filter -->
+    <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
+      <defs>
+        <filter id="ios26-gooey">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur" />
+          <feColorMatrix in="blur" mode="matrix" values="
+            1 0 0 0 0
+            0 1 0 0 0
+            0 0 1 0 0
+            0 0 0 60 -30" result="gooey" />
+          <feComposite in="SourceGraphic" in2="gooey" operator="atop" />
+        </filter>
+      </defs>
+    </svg>
+
+    <div class="background">
+      <div class="bg-layer bg-photo"></div>
+      <div class="bg-layer bg-mesh"></div>
+      <div class="bg-orbs">
+        <span class="orb orb-1"></span>
+        <span class="orb orb-2"></span>
+        <span class="orb orb-3"></span>
+        <span class="orb orb-4"></span>
+      </div>
+    </div>
+
+    <!-- Top status / nav bar -->
+    <header class="nav liquid-glass" id="lg-nav" data-liquid-glass='{"radius":"pill","preset":"auto","variant":"regular"}'>
+      <div class="nav-brand">
+        <span class="brand-dot"></span>
+        <span class="brand-text">Liquid Glass</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#overview">개요</a>
+        <a href="#patterns">패턴</a>
+        <a href="#playground">플레이그라운드</a>
+      </nav>
+      <button class="nav-cta glass-overlay" id="lg-nav-cta">
+        시작하기
+      </button>
+    </header>
+
+    <main class="canvas">
+      <!-- Hero / overview -->
+      <section id="overview" class="hero">
+        <div class="hero-text">
+          <h1>iOS 26 리퀴드 글라스, 웹에서.</h1>
+          <p>
+            스넬의 법칙으로 만든 변위맵을 <code>feDisplacementMap</code>으로 적용해
+            배경을 실제로 <strong>굴절</strong>시키고, Chromium 네이티브
+            <code>backdrop-filter</code>에 합성합니다. 스페큘러 림까지 베이크 —
+            <strong>프레임당 JS 0</strong>, GPU 단일 패스. 크로스브라우저 폴백과
+            모바일 성능 프로파일까지 갖춘 엔진입니다.
+          </p>
+        </div>
+
+        <div class="hero-cards">
+          <article class="card liquid-glass lg-entrance lg-interactive" id="lg-card-1" data-liquid-glass='{"radius":28,"preset":"auto","variant":"regular"}'>
+            <h3>굴절 (Refraction)</h3>
+            <p>볼록 림 변위맵이 가장자리에서 배경 픽셀을 렌즈처럼 휘게 합니다. 모노토닉 돔이라 내부 경계선·접힘이 없습니다.</p>
+            <span class="badge">SVG · GPU</span>
+          </article>
+
+          <article class="card liquid-glass lg-entrance lg-interactive" style="animation-delay: 100ms" id="lg-card-2" data-liquid-glass='{"radius":28,"preset":"auto","chromaticAberration":0.6,"variant":"regular"}'>
+            <h3>색수차 (Chromatic)</h3>
+            <p>R/G/B 3채널을 림에서 각각 다른 강도로 변위해 유리 분산을 재현합니다.</p>
+            <span class="badge">3패스</span>
+          </article>
+
+          <article class="card liquid-glass lg-entrance lg-interactive" style="animation-delay: 200ms" id="lg-card-3" data-liquid-glass='{"radius":28,"preset":"auto","variant":"regular","tint":"rgba(255,255,255,0.2)"}'>
+            <h3>스페큘러 림</h3>
+            <p>SDF로 계산한 가장자리 하이라이트를 필터에 베이크 — 프레임당 JS 0. 슈퍼샘플링으로 저해상도에서도 계단 없이 선명합니다.</p>
+            <span class="badge">SVG · GPU</span>
+          </article>
+        </div>
+      </section>
+
+      <!-- iOS-style patterns -->
+      <section id="patterns" class="patterns">
+        <h2>iOS 26 패턴</h2>
+        <p class="anim-sub">CSS 블러가 아니라 실제 굴절 글라스로 만든 iOS 컴포넌트들. 크기·역할에 따라 블러·굴절이 자동 조정됩니다.</p>
+
+        <div class="pattern-grid">
+          <!-- Notification card -->
+          <div class="pattern-row">
+            <div class="pattern-label">알림</div>
+            <div class="notification liquid-glass" id="lg-notif" data-liquid-glass='{"radius":22,"preset":"auto","variant":"regular"}'>
+              <div class="notif-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22a3 3 0 0 0 3-3H9a3 3 0 0 0 3 3Z" />
+                  <path d="M19 17H5l1.5-2v-5a5.5 5.5 0 1 1 11 0v5L19 17Z" />
+                </svg>
+              </div>
+              <div class="notif-body">
+                <strong>메시지</strong>
+                <p>"웹의 리퀴드 글라스 — 진짜로 굴절합니다."</p>
+              </div>
+              <time>지금</time>
+            </div>
+          </div>
+
+          <!-- Buttons row -->
+          <div class="pattern-row">
+            <div class="pattern-label">컨트롤</div>
+            <div class="controls-row">
+              <button class="btn liquid-glass lg-interactive" data-liquid-glass='{"radius":"pill","preset":"auto"}'>확인</button>
+              <button class="btn btn-md liquid-glass lg-interactive" data-liquid-glass='{"radius":"pill","preset":"auto"}'>취소</button>
+              <button class="btn btn-lg liquid-glass lg-interactive" data-liquid-glass='{"radius":"pill","preset":"auto","variant":"regular"}'>더보기</button>
+              <button class="btn-icon liquid-glass lg-interactive" aria-label="Play" data-liquid-glass='{"radius":999,"preset":"auto"}'>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Sheet/modal -->
+          <div class="pattern-row">
+            <div class="pattern-label">시트</div>
+            <div class="sheet liquid-glass" id="lg-sheet" role="dialog" data-liquid-glass='{"radius":36,"preset":"auto","variant":"regular"}'>
+              <div class="sheet-handle"></div>
+              <h3>프로필 편집</h3>
+              <div class="sheet-field">
+                <label>표시 이름</label>
+                <input type="text" placeholder="Naen" />
+              </div>
+              <div class="sheet-field">
+                <label>상태</label>
+                <input type="text" placeholder="무언가 만드는 중…" />
+              </div>
+              <div class="sheet-actions">
+                <button class="btn glass-overlay">취소</button>
+                <button class="btn btn-primary glass-overlay glass-overlay-accent">저장</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Now playing widget -->
+          <div class="pattern-row">
+            <div class="pattern-label">위젯</div>
+            <div class="widget liquid-glass" id="lg-widget" data-liquid-glass='{"radius":28,"preset":"auto","variant":"regular"}'>
+              <div class="widget-art"></div>
+              <div class="widget-body">
+                <strong>Drift</strong>
+                <span>Lumen — 유리 성당</span>
+                <div class="progress"><span style="width:42%"></span></div>
+                <div class="widget-controls">
+                  <button class="ic" aria-label="Prev"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM9.5 12l8.5 6V6z"/></svg></button>
+                  <button class="ic ic-play" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+                  <button class="ic" aria-label="Next"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Animations showcase -->
+      <section id="animations" class="animations">
+        <h2>애니메이션</h2>
+        <p class="anim-sub">애플은 모션과 외형을 하나로 설계했습니다. 모두 공식 모션을 구현했고, 직접 만져볼 수 있습니다.</p>
+
+        <div class="anim-grid">
+          <!-- Menu summon morph -->
+          <div class="anim-card liquid-glass" data-liquid-glass='{"radius":24,"profile":"panel","preset":"auto","variant":"regular"}'>
+            <div class="anim-label">메뉴 모핑 — 컨트롤에서 흘러나오고, 커질수록 더 두꺼운 글라스(깊은 그림자·강한 굴절)</div>
+            <button class="btn anim-menu-trigger liquid-glass lg-interactive" id="anim-menu-trigger" data-liquid-glass='{"radius":"pill","thickness":44,"refraction":50,"variant":"regular"}'>
+              옵션 ▾
+            </button>
+            <div class="anim-menu liquid-glass" id="anim-menu" data-liquid-glass='{"radius":24,"thickness":44,"refraction":40,"blur":28,"variant":"regular"}'>
+              <button class="anim-menu-item">공유</button>
+              <button class="anim-menu-item">복제</button>
+              <button class="anim-menu-item">이름 변경</button>
+              <div class="anim-menu-sep"></div>
+              <button class="anim-menu-item anim-menu-danger">삭제</button>
+            </div>
+          </div>
+
+          <!-- Materialize in / out -->
+          <div class="anim-card liquid-glass" data-liquid-glass='{"radius":24,"profile":"panel","preset":"auto","variant":"regular"}'>
+            <div class="anim-label">머티리얼라이즈 — 페이드가 아니라 렌즈 효과를 스프링으로 등장/퇴장</div>
+            <div class="anim-materialize-stage">
+              <div class="chip liquid-glass" id="anim-chip" data-liquid-glass='{"radius":18,"thickness":40,"refraction":48,"variant":"regular"}'>리퀴드 칩</div>
+            </div>
+            <div class="anim-btn-row">
+              <button class="btn btn-sm liquid-glass lg-interactive" id="anim-mat-in" data-liquid-glass='{"radius":"pill","thickness":40,"refraction":44}'>등장</button>
+              <button class="btn btn-sm liquid-glass lg-interactive" id="anim-mat-out" data-liquid-glass='{"radius":"pill","thickness":40,"refraction":44}'>퇴장</button>
+            </div>
+          </div>
+
+          <!-- Interaction illumination -->
+          <div class="anim-card liquid-glass" data-liquid-glass='{"radius":24,"profile":"panel","preset":"auto","variant":"regular"}'>
+            <div class="anim-label">인터랙션 발광 — 길게 누르면 손끝에서 빛이 번지고 주변 글라스로 퍼집니다</div>
+            <div class="press-target liquid-glass lg-interactive" id="anim-press" data-liquid-glass='{"radius":24,"thickness":44,"refraction":52,"variant":"regular"}'>
+              길게 누르기
+            </div>
+          </div>
+
+          <!-- Sheet morph -->
+          <div class="anim-card liquid-glass" data-liquid-glass='{"radius":24,"profile":"panel","preset":"auto","variant":"regular"}'>
+            <div class="anim-label">시트 — 디밍 스크림 위로 하단에서 떠오르며 커집니다</div>
+            <button class="btn liquid-glass lg-interactive" id="anim-sheet-trigger" data-liquid-glass='{"radius":"pill","thickness":44,"refraction":50,"variant":"regular"}'>
+              시트 열기
+            </button>
+          </div>
+
+          <!-- Context menu (iOS long-press style) -->
+          <div class="anim-card liquid-glass" data-liquid-glass='{"radius":24,"profile":"panel","preset":"auto","variant":"regular"}'>
+            <div class="anim-label">컨텍스트 메뉴 — iOS 길게 누르기 스타일: 그룹 행·아이콘·위험 동작</div>
+            <button class="btn liquid-glass lg-interactive" id="anim-ctx-trigger" data-liquid-glass='{"radius":"pill","thickness":44,"refraction":50,"variant":"regular"}'>
+              메뉴 보기
+            </button>
+          </div>
+
+          <!-- Adaptive appearance — static reference (light vs dark backdrop) -->
+          <div class="anim-card liquid-glass" data-liquid-glass='{"radius":24,"profile":"panel","preset":"auto","variant":"regular"}'>
+            <div class="anim-label">적응형 — 뒤 콘텐츠에 맞춰 라이트/다크 자동 전환</div>
+            <div class="adapt-row">
+              <div class="adapt-swatch adapt-dark">
+                <div class="adapt-pill liquid-glass" data-liquid-glass='{"radius":"pill","preset":"auto","scheme":"adaptive","backdropSource":null}'>글라스</div>
+              </div>
+              <div class="adapt-swatch adapt-light">
+                <div class="adapt-pill liquid-glass" data-liquid-glass='{"radius":"pill","preset":"auto","scheme":"adaptive","backdropSource":null}'>글라스</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Adaptive appearance — smooth auto transition as the backdrop changes -->
+          <div class="anim-card liquid-glass" data-liquid-glass='{"radius":24,"profile":"panel","preset":"auto","variant":"regular"}'>
+            <div class="anim-label">적응형 — 뒤 콘텐츠가 바뀌면 부드러운 크로스페이드</div>
+            <div class="adapt-stage" id="adapt-stage">
+              <div class="adapt-pill liquid-glass" id="adapt-auto" data-liquid-glass='{"radius":"pill","preset":"auto","scheme":"adaptive","backdropSource":null}'>Aa 글라스</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- The sheet itself (fixed-positioned, hidden until presented) -->
+        <div class="anim-sheet liquid-glass" id="anim-sheet" data-liquid-glass='{"radius":34,"thickness":48,"refraction":60,"variant":"regular"}'>
+          <div class="anim-sheet-handle"></div>
+          <h3>리퀴드 시트</h3>
+          <p>하단에서 떠올라 커집니다 — 풀 사이즈에서 더 두꺼운 글라스, 뒤엔 가독성을 위한 디밍 스크림.</p>
+          <button class="btn btn-sm glass-overlay" id="anim-sheet-close">완료</button>
+        </div>
+
+        <!-- The context menu (fixed-positioned, hidden until shown) -->
+        <div class="anim-ctx liquid-glass" id="anim-ctx" data-liquid-glass='{"radius":22,"thickness":44,"refraction":40,"blur":30,"tint":"rgba(30,30,36,0.55)"}'>
+          <button class="ctx-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>
+            <span>복사</span>
+          </button>
+          <button class="ctx-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="13" height="13" rx="2"/><path d="M20 9v9a2 2 0 0 1-2 2H9"/></svg>
+            <span>복제</span>
+          </button>
+          <button class="ctx-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path d="m3 3 18 18"/></svg>
+            <span>숨기기</span>
+          </button>
+          <div class="ctx-sep"></div>
+          <button class="ctx-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 9v6M9 12h6"/></svg>
+            <span>앨범에 추가</span>
+          </button>
+          <div class="ctx-sep"></div>
+          <button class="ctx-item ctx-danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg>
+            <span>삭제</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Live controls -->
+      <section id="playground" class="playground">
+        <div class="playground-stage">
+          <div class="play-target liquid-glass" id="lg-play"></div>
+        </div>
+        <aside class="play-panel liquid-glass" id="lg-panel" data-liquid-glass='{"radius":24,"preset":"auto","variant":"regular"}'>
+          <h3>실시간 파라미터</h3>
+          <label>반경 <span id="v-radius">36</span>px
+            <input type="range" min="0" max="240" value="36" id="i-radius" />
+          </label>
+          <label>두께 <span id="v-thickness">44</span>px
+            <input type="range" min="4" max="80" value="44" id="i-thickness" />
+          </label>
+          <label>굴절 <span id="v-refraction">46</span>px
+            <input type="range" min="0" max="120" value="46" id="i-refraction" />
+          </label>
+          <label>블러 <span id="v-blur">10</span>px
+            <input type="range" min="0" max="40" step="0.5" value="10" id="i-blur" />
+          </label>
+          <label>채도 <span id="v-sat">150</span>%
+            <input type="range" min="50" max="250" value="150" id="i-sat" />
+          </label>
+          <label>색수차 <span id="v-ab">0</span>
+            <input type="range" min="0" max="1" step="0.05" value="0" id="i-ab" />
+          </label>
+          <label>스페큘러 <span id="v-spec">0.50</span>
+            <input type="range" min="0" max="1" step="0.05" value="0.5" id="i-spec" />
+          </label>
+          <div class="variant-row">
+            <button data-variant="regular" class="active">레귤러</button>
+            <button data-variant="clear">클리어</button>
+            <button data-variant="tinted">틴티드</button>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <!-- Bottom floating tab bar -->
+    <nav class="tabbar liquid-glass" id="lg-tabbar" role="tablist" data-liquid-glass='{"radius":"pill","preset":"auto","variant":"regular"}'>
+      <button class="tab active" aria-label="홈">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H10v7H5a1 1 0 0 1-1-1z"/></svg>
+      </button>
+      <button class="tab" aria-label="탐색">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+      <button class="tab" aria-label="라이브러리">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M8 4v16"/></svg>
+      </button>
+      <button class="tab" aria-label="프로필">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </button>
+    </nav>
+
+    <script type="module" src="/demo/demo.ts"></script>
+  </body>
+</html>
