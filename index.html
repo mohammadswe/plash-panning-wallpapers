@@ -1,149 +1,428 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Wallpaper</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background-color: #000;
-    }
-    #viewport {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: #000;
-    }
-    .layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      /* Ensure image is overscaled slightly in both dimensions to allow diagonal headroom */
-      min-width: 110vw;
-      min-height: 110vh;
-      width: auto;
-      height: 110vh;
-      
-      /* GPU promotion & subpixel anti-aliasing */
-      will-change: transform, opacity;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      image-rendering: -webkit-optimize-contrast;
-      object-fit: cover;
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <link rel="stylesheet" href="liquid-glass.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background-color: transparent;
+      }
+      #viewport {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        background: transparent;
+      }
+      #wallpaper-scene {
+        position: absolute;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        /* Ensure image is overscaled slightly in both dimensions to allow headroom */
+        min-width: 114vw;
+        min-height: 114vh;
+        width: auto;
+        height: 114vh;
 
-      opacity: 0;
-      transition: opacity 3s ease-in-out;
-    }
-    .layer.active {
-      opacity: 1;
-    }
-  </style>
-</head>
-<body>
-  <div id="viewport">
-    <img id="layerA" class="layer" alt="Wallpaper A" />
-    <img id="layerB" class="layer" alt="Wallpaper B" />
-  </div>
+        /* GPU promotion & subpixel anti-aliasing */
+        will-change: transform, opacity;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        image-rendering: -webkit-optimize-contrast;
+        object-fit: cover;
 
-  <script>
-    // Paste your image paths here (relative to index.html)
-    // Run the command from README.md to generate and copy this list automatically!
-    const images = [
-      <PASTE OUTPUT OF THE 'find' COMMAND HERE>
-    ];
+        opacity: 0;
+        transition: opacity 3s ease-in-out;
+      }
+      .layer.active {
+        opacity: 1;
+      }
 
-    const INTERVAL_MS = 60000; // Time each photo is shown (default: 60 seconds)
-    const FADE_MS = 3000;      // Crossfade transition duration (3 seconds)
+      /* Simulated macOS Menu Bar Frosted Glass */
+      :root {
+        --menubar-blur: 15px;
+        --menubar-saturate: 140%;
+        --menubar-tint-dark: rgba(20, 20, 20, 0.32);
+        --menubar-border-dark: rgba(255, 255, 255, 0.12);
+      }
 
-    let currentLayer = document.getElementById("layerA");
-    let nextLayer = document.getElementById("layerB");
-    let lastIndex = -1;
+      #menubar-glass {
+        height: 30px;
+        border-radius: 0;
+        clip-path: inset(0 0 0 0);
+        contain: paint;
+        overflow: clip;
 
-    function getRandomImage() {
-      if (!images || images.length === 0) return "";
-      if (images.length === 1) return images[0];
-      let idx;
-      do {
-        idx = Math.floor(Math.random() * images.length);
-      } while (idx === lastIndex);
-      lastIndex = idx;
-      return images[idx];
-    }
+        /* Hardware-accelerated frosted glass */
+        backdrop-filter: blur(var(--menubar-blur))
+          saturate(var(--menubar-saturate));
+        -webkit-backdrop-filter: blur(var(--menubar-blur))
+          saturate(var(--menubar-saturate));
 
-    function calculateDiagonalVector(imgEl) {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      
-      // Calculate true rendered dimension after 110vh height clamp
-      const renderedHeight = vh * 1.10;
-      const aspect = imgEl.naturalWidth / imgEl.naturalHeight;
-      const renderedWidth = Math.max(renderedHeight * aspect, vw * 1.10);
-      
-      // Max allowable translation before black bars appear
-      const maxDeltaX = renderedWidth - vw;
-      const maxDeltaY = renderedHeight - vh;
-      
-      // Random diagonal: choose start and end corners
-      // (X: 0 = aligned left, -maxDeltaX = aligned right)
-      // (Y: 0 = aligned top, -maxDeltaY = aligned bottom)
-      const startLeft = Math.random() > 0.5;
-      const startTop  = Math.random() > 0.5;
-      
-      const startX = startLeft ? 0 : -maxDeltaX;
-      const endX   = startLeft ? -maxDeltaX : 0;
-      
-      const startY = startTop ? 0 : -maxDeltaY;
-      const endY   = startTop ? -maxDeltaY : 0;
-      
-      return {
-        from: `translate3d(${startX}px, ${startY}px, 0)`,
-        to:   `translate3d(${endX}px, ${endY}px, 0)`
-      };
-    }
+        /* Dynamic Light / Dark mode tint */
+        background: var(--menubar-tint-dark);
+        box-shadow: inset 0 0.5px 0 var(--menubar-border-dark);
+        transition:
+          background 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewport">
+      <div id="wallpaper-scene">
+        <img id="layerA" class="layer" alt="Wallpaper A" />
+        <img id="layerB" class="layer" alt="Wallpaper B" />
+      </div>
+      <div id="menubar-glass" class="liquid-glass" aria-hidden="true"></div>
+    </div>
 
-    function cycleWallpaper() {
-      const targetSrc = getRandomImage();
-      if (!targetSrc) return;
+    <script src="liquid-glass.umd.js?v=3"></script>
+    <script>
+      // Add all your converted files here
+      const images = [
+        "converted/829381720_122238105836559349_4246260331796505168_n-topaz.webp",
+        "converted/Landscape_of_Shimla_,_Himachal_Pradesh.webp",
+        "converted/National_Martyrs'_Monument_of_Bangladesh_at_night.webp",
+        "converted/Phewa_Lake_in_Pokhara_(15715573565).webp",
+        "converted/Ruppur_Nuclear_Power_Plant_,_Ruppur,_Pabna.webp",
+        "converted/The_padma_bridge_02.webp",
+        "converted/abul-basar-S2q5u2adc6k-unsplash.webp",
+        "converted/ahmed-jubair-y31da-h0o3q-unsplash.webp",
+        "converted/andres-garcia-OgrfLCYqfVY-unsplash.webp",
+        "converted/anik-das-0SiF0OBrgFI-unsplash.webp",
+        "converted/ankit-bhattacharjee-2KQsbekDbCk-unsplash.webp",
+        "converted/arpon-mazumder-hx9m8g1294U-unsplash.webp",
+        "converted/austin-curtis-7_6g2z9JzQc-unsplash.webp",
+        "converted/bornil-amin-wNAlCZk7ATc-unsplash.webp",
+        "converted/boudhayan-bardhan-K5iIFNr7DFE-unsplash.webp",
+        "converted/boudhayan-bardhan-P7Ye9lDx0UI-unsplash.webp",
+        "converted/boudhayan-bardhan-QmL51sNfFEk-unsplash.webp",
+        "converted/boudhayan-bardhan-ZKGnk5gyH3w-unsplash.webp",
+        "converted/boudhayan-bardhan-_VC16gWmLtk-unsplash.webp",
+        "converted/boudhayan-bardhan-cYEfG8qGOW4-unsplash.webp",
+        "converted/boudhayan-bardhan-gHdAfs2FEXY-unsplash.webp",
+        "converted/boudhayan-bardhan-lac_4x6r6OM-unsplash.webp",
+        "converted/boudhayan-bardhan-lo7TzR89Yjs-unsplash.webp",
+        "converted/boudhayan-bardhan-rM99w_TTxLI-unsplash.webp",
+        "converted/ctg-nayem-txD43ETD-o8-unsplash.webp",
+        "converted/dhaka-6202838.webp",
+        "converted/dibakar-roy-2YDSH3s1LkM-unsplash.webp",
+        "converted/dipankar-bailung-haA_CbEDcDg-unsplash.webp",
+        "converted/dreamstime_xxl_257741689.webp",
+        "converted/dreamstime_xxl_292800283.webp",
+        "converted/dreamstime_xxl_395357179.webp",
+        "converted/dreamstime_xxl_399965337.webp",
+        "converted/dreamstime_xxl_87515617.webp",
+        "converted/dylan-shaw-smUAKwMT8XA-unsplash.webp",
+        "converted/expressive-capture-8VrmGtRAJi8-unsplash.webp",
+        "converted/expressive-capture-TM_W3sVKZh8-unsplash.webp",
+        "converted/hendrik-cornelissen-jpTT_SAU034-unsplash.webp",
+        "converted/jochen-van-wylick-SstmZ25r5UA-unsplash.webp",
+        "converted/juho-s-uDk9n1yKxTw-unsplash.webp",
+        "converted/khanh-do-o8xnKfYl0P4-unsplash.webp",
+        "converted/mahedi-hasan-gW8JWwWk7y0-unsplash.webp",
+        "converted/mainul-islam-Lkh9ZhSDxuc-unsplash.webp",
+        "converted/manson-yim-lYDOrOkR_GU-unsplash.webp",
+        "converted/martin-skrivanek--sz-PCtnmFI-unsplash.webp",
+        "converted/marwan-ahmed-vFClVPWFavA-unsplash.webp",
+        "converted/marwan-ahmed-zcocsL8JjH4-unsplash.webp",
+        "converted/md-rifat-UrvALLRrDYw-unsplash.webp",
+        "converted/meera-pankhania-7cENZhgyf7c-unsplash.webp",
+        "converted/mosharraf-hossain-CX6GTKb5aiQ-unsplash.webp",
+        "converted/mosharraf-hossain-tKOmrv2L9mE-unsplash.webp",
+        "converted/mosharraf-hossain-vV4syJ1coPE-unsplash.webp",
+        "converted/msi-sakib-5d9r2ommxAs-unsplash-topaz-enhance-2x.webp",
+        "converted/msi-sakib-zkgWBAIx16c-unsplash.webp",
+        "converted/muhammad-monirul-masud-zSLj-usxswA-unsplash.webp",
+        "converted/muhuriprojectfeni-topaz-enhance-4x.webp",
+        "converted/naim-talukder-oE_fvNP_qm0-unsplash.webp",
+        "converted/naman-pandey-y3nWJ-QznP4-unsplash.webp",
+        "converted/navarun-baishya-9ubWUB2jnE0-unsplash.webp",
+        "converted/neha-maheen-mahfin-ELDSG6MfCZ8-unsplash.webp",
+        "converted/nicole-geri-jlvy1xuzw9o-unsplash.webp",
+        "converted/north-bengal-tourism-lYxLn3r6DWE-unsplash.webp",
+        "converted/pema-gyamtsho-vd3_HFi29Fo-unsplash.webp",
+        "converted/pervez-robin-4rRbOQ4IZqY-unsplash.webp",
+        "converted/pexels-capturedbynadim-39298869.webp",
+        "converted/pexels-ferdous-15023174.webp",
+        "converted/pexels-mahidulislamnakib-39354157.webp",
+        "converted/pexels-md-samiuzzaman-sakib_-499442624-18573192.webp",
+        "converted/pexels-somogrobangladesh-35188819.webp",
+        "converted/pexels-tanhatamannasyed-35371189.webp",
+        "converted/polina-kneis-EzFO-hHImBo-unsplash.webp",
+        "converted/preyas-patel-z6dSe_Wah2M-unsplash.webp",
+        "converted/quy-pham-gyQiFLJxm58-unsplash.webp",
+        "converted/rashed-kabir-38T2K-nNz5M-unsplash.webp",
+        "converted/sabbir-ahmed-AvGCGMMu9XU-unsplash.webp",
+        "converted/sabbir-ahmed-SEN2v0rAdVI-unsplash.webp",
+        "converted/sashi-shrestha-_5-GEPZoza4-unsplash.webp",
+        "converted/sharaf-ahmed-PYU0RkZAxzI-unsplash.webp",
+        "converted/sharafat-siddiqui-RfHhohVQLnQ-unsplash.webp",
+        "converted/shariful-shawon-uOl69VgFIZE-unsplash.webp",
+        "converted/shashank-hudkar-KYBc1eq0dJo-unsplash.webp",
+        "converted/sheikh-abir-ali-Yr8oukF-Opk-unsplash.webp",
+        "converted/sheikh-abir-ali-_OwbuJ5whNY-unsplash.webp",
+        "converted/sheikh-abir-ali-cfHwX7fkGis-unsplash.webp",
+        "converted/sheikh-abir-ali-jD-E4DLh0Q4-unsplash.webp",
+        "converted/sheikh-abir-ali-rKOYClNP4L8-unsplash.webp",
+        "converted/sheikh-abir-ali-uYa97wXymxw-unsplash.webp",
+        "converted/sheikh-nayim-hasan-ogwcSsKRkhs-unsplash.webp",
+        "converted/somoun-bo-di3tjWKMhco-unsplash.webp",
+        "converted/sourav-debnath-Voz7i1OUhJ0-unsplash.webp",
+        "converted/tamal-kumar-maur-cJ5e_0Ml3cM-unsplash.webp",
+        "converted/tamil-nadu-377485.webp",
+        "converted/thailand-7111496.webp",
+        "converted/timo-volz-1jx-gZTja9s-unsplash.webp",
+        "converted/towfiq-islam-NFS5c0-0Bww-unsplash.webp",
+        "converted/towfiq-islam-tVER-9XAaaI-unsplash.webp",
+        "converted/upscalemedia-transformed.webp",
+        "converted/vietnam-beautiful-itM5EI3VnOk-unsplash.webp"
+      ];
 
-      nextLayer.onload = () => {
-        const { from, to } = calculateDiagonalVector(nextLayer);
+      const INTERVAL_MS = 60000; // 1 minute per photo
+      const FADE_MS = 3000; // 3-second crossfade
+      const SYNC_NATIVE_WALLPAPER = true; // Set to true if you still want wallpaper_sync.py to change native macOS wallpaper
 
-        // Run animation via Web Animations API directly on the GPU compositor
-        const panAnimation = nextLayer.animate([
-          { transform: from },
-          { transform: to }
-        ], {
-          duration: INTERVAL_MS + FADE_MS,
+      let currentLayer = document.getElementById("layerA");
+      let nextLayer = document.getElementById("layerB");
+
+      // --- Shuffle Deck System (Fisher-Yates) ---
+      // Ensures every wallpaper plays exactly once before repeating,
+      // eliminating duplicate clumping and the "same walls over and over" effect.
+      let deck = [];
+      let lastShown = "";
+
+      function shuffle(array) {
+        const copy = [...array];
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function getNextWallpaper() {
+        if (!images || images.length === 0) return "";
+        if (images.length === 1) return images[0];
+
+        // Refill and shuffle deck when empty
+        if (deck.length === 0) {
+          deck = shuffle(images);
+          // Avoid immediate repeat across reshuffle boundary
+          if (deck[0] === lastShown && deck.length > 1) {
+            const swapIdx = Math.floor(Math.random() * (deck.length - 1)) + 1;
+            [deck[0], deck[swapIdx]] = [deck[swapIdx], deck[0]];
+          }
+        }
+
+        const next = deck.shift();
+        lastShown = next;
+        try {
+          localStorage.setItem("current_wallpaper", next);
+          localStorage.setItem("wallpaper_deck", JSON.stringify(deck));
+        } catch (_) {}
+        return next;
+      }
+
+      function initDeck() {
+        try {
+          const savedDeck = JSON.parse(
+            localStorage.getItem("wallpaper_deck") || "[]",
+          );
+          if (
+            Array.isArray(savedDeck) &&
+            savedDeck.length > 0 &&
+            savedDeck.every((img) => images.includes(img))
+          ) {
+            deck = savedDeck;
+          }
+          lastShown = localStorage.getItem("current_wallpaper") || "";
+        } catch (_) {
+          deck = [];
+        }
+      }
+
+      function calculatePanVector(imgEl, durationMs) {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const durationSec = durationMs / 1000;
+
+        // Headroom overscale factor (14% headroom ensures smooth 360-degree panning without edge gaps)
+        const OVERSCALE = 1.14;
+        const aspect = (imgEl.naturalWidth || 16) / (imgEl.naturalHeight || 9);
+
+        // True rendered dimension matching CSS min-width: 114vw, min-height: 114vh
+        const scale = Math.max(
+          (vw * OVERSCALE) / (imgEl.naturalWidth || vw),
+          (vh * OVERSCALE) / (imgEl.naturalHeight || vh),
+        );
+        const renderedWidth = (imgEl.naturalWidth || vw) * scale;
+        const renderedHeight = (imgEl.naturalHeight || vh) * scale;
+
+        // Maximum available slack before black borders appear
+        const maxSlackX = renderedWidth - vw;
+        const maxSlackY = renderedHeight - vh;
+
+        // Visual linear speed: min ~3.0 px/s, avg ~4.0 px/s, max ~5.0 px/s
+        const speed = 3.0 + Math.random() * 2.0; // 3.0 to 5.0 px/s
+        const travelDist = speed * durationSec;
+
+        // True 360-degree random angle
+        const angle = Math.random() * 2 * Math.PI;
+        let dx = travelDist * Math.cos(angle);
+        let dy = travelDist * Math.sin(angle);
+
+        // Keep displacement inside available slack (with 96% safety cushion)
+        const safety = 0.96;
+        let clampScale = 1.0;
+        if (Math.abs(dx) > maxSlackX * safety) {
+          clampScale = Math.min(clampScale, (maxSlackX * safety) / Math.abs(dx));
+        }
+        if (Math.abs(dy) > maxSlackY * safety) {
+          clampScale = Math.min(clampScale, (maxSlackY * safety) / Math.abs(dy));
+        }
+        dx *= clampScale;
+        dy *= clampScale;
+
+        // Pick a random starting coordinate within the valid slack window
+        const minStartX = -maxSlackX + Math.max(0, -dx);
+        const maxStartX = 0 - Math.max(0, dx);
+        const startX = minStartX + Math.random() * (maxStartX - minStartX);
+        const endX = startX + dx;
+
+        const minStartY = -maxSlackY + Math.max(0, -dy);
+        const maxStartY = 0 - Math.max(0, dy);
+        const startY = minStartY + Math.random() * (maxStartY - minStartY);
+        const endY = startY + dy;
+
+        return {
+          from: `translate3d(${startX.toFixed(1)}px, ${startY.toFixed(1)}px, 0)`,
+          to: `translate3d(${endX.toFixed(1)}px, ${endY.toFixed(1)}px, 0)`,
+        };
+      }
+
+      function startKenBurnsAnimation(imgEl, duration) {
+        const { from, to } = calculatePanVector(imgEl, duration);
+        return imgEl.animate([{ transform: from }, { transform: to }], {
+          duration,
           easing: "linear",
-          fill: "forwards"
+          fill: "forwards",
         });
+      }
 
-        // Crossfade
-        nextLayer.classList.add("active");
-        currentLayer.classList.remove("active");
+      function syncNativeTheme(imagePath) {
+        if (!SYNC_NATIVE_WALLPAPER) return;
+        // Sync underlying macOS desktop wallpaper so native desktop matches if enabled
+        fetch(
+          `http://localhost:8765/sync?file=${encodeURIComponent(imagePath)}`,
+          { mode: "no-cors" },
+        ).catch(() => {});
+      }
 
-        // Swap references and cancel dead animation after fade
-        setTimeout(() => {
-          const oldAnim = currentLayer.getAnimations()[0];
-          if (oldAnim) oldAnim.cancel();
+      function cycleWallpaper() {
+        const targetSrc = getNextWallpaper();
+        if (!targetSrc) return;
 
-          const temp = currentLayer;
-          currentLayer = nextLayer;
-          nextLayer = temp;
-        }, FADE_MS);
-      };
-      nextLayer.src = targetSrc;
-    }
+        nextLayer.onerror = () => {
+          console.warn("[live-walls] Failed to load:", targetSrc);
+          // Advance to the next card if decode fails
+          setTimeout(cycleWallpaper, 100);
+        };
 
-    // Initialize first photo immediately
-    cycleWallpaper();
+        nextLayer.onload = () => {
+          startKenBurnsAnimation(nextLayer, INTERVAL_MS + FADE_MS);
 
-    // Loop every INTERVAL_MS
-    setInterval(cycleWallpaper, INTERVAL_MS);
-  </script>
-</body>
+          nextLayer.classList.add("active");
+          currentLayer.classList.remove("active");
+
+          setTimeout(() => {
+            currentLayer.getAnimations()[0]?.cancel();
+            [currentLayer, nextLayer] = [nextLayer, currentLayer];
+
+            syncNativeTheme(targetSrc);
+            menubarGlass?.syncToBackdrop?.();
+          }, FADE_MS - 500);
+        };
+        nextLayer.src = targetSrc;
+      }
+
+      function initWallpaper() {
+        initDeck();
+        const initialSrc = getNextWallpaper();
+        if (!initialSrc) return;
+
+        syncNativeTheme(initialSrc);
+
+        currentLayer.style.transition = "none";
+        currentLayer.classList.add("active");
+
+        currentLayer.onerror = () => {
+          console.warn("[live-walls] Failed to load initial:", initialSrc);
+          setTimeout(cycleWallpaper, 100);
+        };
+
+        currentLayer.onload = () => {
+          startKenBurnsAnimation(currentLayer, INTERVAL_MS);
+          requestAnimationFrame(() => {
+            currentLayer.style.transition = "";
+          });
+        };
+        currentLayer.src = initialSrc;
+      }
+
+      // Initialize Apple Liquid Glass effect on the navbar
+      const menubarEl = document.getElementById("menubar-glass");
+      const LiquidGlass = window.LiquidGlass?.LiquidGlass;
+      const menubarGlass =
+        menubarEl && LiquidGlass
+          ? new LiquidGlass(menubarEl, {
+              profile: "panel",
+              preset: "dramatic",
+              refraction: 46,
+              thickness: 7,
+              chromaticAberration: 0.6,
+              quality: "high",
+              specular: true,
+              specularIntensity: 0.2,
+              blur: 1.5,
+              saturation: 140,
+              scheme: "dark",
+              tint: "rgba(20, 20, 20, 0.08)",
+              edges: false,
+              applyRadius: false,
+              radius: 0,
+              rimPosition: "bottom",
+              backdropSource: "#wallpaper-scene",
+              fallbackFilter:
+                "blur(var(--menubar-blur)) saturate(var(--menubar-saturate))",
+            })
+          : null;
+
+      // Warm-start initial photo immediately with zero black delay
+      initWallpaper();
+
+      // Loop every INTERVAL_MS
+      setInterval(cycleWallpaper, INTERVAL_MS);
+    </script>
+  </body>
 </html>
