@@ -278,5 +278,11 @@ for target in target_html_files:
     print(f"  ✓ Updated {target} ({len(filtered_files)} wallpapers registered, backup at {target}.bak)")
 EOF
 
+# 6. Automatically trigger Plash reload if running
+if pgrep -x "Plash" &>/dev/null; then
+  osascript -e 'tell application "System Events" to tell process "Plash" to tell menu bar item 1 of menu bar 2 to click menu item "Reload" of menu 1' &>/dev/null && \
+    echo -e "  ${C_CYAN}✓ Plash desktop reloaded automatically.${C_RESET}" || true
+fi
+
 echo ""
 echo -e "${C_BOLD}${C_GREEN}All done!${C_RESET} Plash will display the updated wallpapers automatically."
