@@ -7,6 +7,7 @@
 # ==============================================================================
 
 set -eo pipefail
+trap 'rm -f /tmp/livewall_conv_*' EXIT INT TERM
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
@@ -15,6 +16,7 @@ cd "$SCRIPT_DIR"
 
 CONVERTED_DIR="$SCRIPT_DIR/converted"
 TARGET_HEIGHT=2880
+MAX_WIDTH=7680
 WEBP_QUALITY=88
 
 # Colors
@@ -47,40 +49,47 @@ if ! command -v cwebp &>/dev/null; then
   fi
 fi
 
-# 2. Gather input paths
+# 2. Gather input paths and options
 RAW_INPUTS=()
 SYNC_ONLY=0
+FORCE_OVERWRITE=0
 
 if [ "$#" -gt 0 ]; then
-  if [ "$1" = "--sync" ] || [ "$1" = "-s" ]; then
-    SYNC_ONLY=1
-  else
-    RAW_INPUTS=("$@")
-  fi
+  for arg in "$@"; do
+    case "$arg" in
+      --sync|-s)
+        SYNC_ONLY=1
+        ;;
+      --force|-f)
+        FORCE_OVERWRITE=1
+        ;;
+      *)
+        RAW_INPUTS+=("$arg")
+        ;;
+    esac
+  done
 else
   echo -e "${C_BOLD}${C_BLUE}======================================================${C_RESET}"
   echo -e "${C_BOLD}${C_CYAN}            Live Walls — Wallpaper Importer           ${C_RESET}"
   echo -e "${C_BOLD}${C_BLUE}======================================================${C_RESET}"
   echo -e "Drag and drop your image file(s) or folder(s) directly into"
   echo -e "this terminal window, then press ${C_BOLD}[Enter]${C_RESET}:"
-  echo -e "(Or type ${C_BOLD}--sync${C_RESET} to re-index existing wallpapers without adding new ones)"
+  echo -e "(Options: ${C_BOLD}--sync${C_RESET} to re-index, ${C_BOLD}--force${C_RESET} to overwrite existing conversions)"
   echo ""
   printf "${C_GREEN}➔ Images to add: ${C_RESET}"
   read -r USER_LINE
   echo ""
 
-  if [ "$USER_LINE" = "--sync" ] || [ "$USER_LINE" = "-s" ]; then
-    SYNC_ONLY=1
-  elif [ -z "${USER_LINE// }" ]; then
-    echo -e "${C_YELLOW}No files provided. Exiting.${C_RESET}"
-    exit 0
-  fi
-
-  if [ "$SYNC_ONLY" -eq 0 ]; then
-    # Parse shell-escaped / quoted drag-and-drop string safely using Python shlex
-    while IFS= read -r parsed_path; do
-      [ -n "$parsed_path" ] && RAW_INPUTS+=("$parsed_path")
-    done < <(python3 -c "
+  # Parse shell-escaped / quoted drag-and-drop string safely using Python shlex
+  while IFS= read -r parsed_path; do
+    if [ "$parsed_path" = "--sync" ] || [ "$parsed_path" = "-s" ]; then
+      SYNC_ONLY=1
+    elif [ "$parsed_path" = "--force" ] || [ "$parsed_path" = "-f" ]; then
+      FORCE_OVERWRITE=1
+    elif [ -n "$parsed_path" ]; then
+      RAW_INPUTS+=("$parsed_path")
+    fi
+  done < <(python3 -c "
 import sys, shlex
 line = sys.argv[1].strip()
 try:
@@ -92,7 +101,6 @@ except Exception as e:
         if item.strip():
             print(item.strip())
 " "$USER_LINE")
-  fi
 fi
 
 if [ "$SYNC_ONLY" -eq 0 ] && [ "${#RAW_INPUTS[@]}" -eq 0 ]; then
@@ -130,11 +138,33 @@ if [ "$SYNC_ONLY" -eq 0 ]; then
   echo -e "${C_BOLD}Found $TOTAL_FOUND image(s) to process.${C_RESET}"
   echo ""
 
-  # Helper to sanitize filename
+  # Helper to sanitize filename (Unicode-safe, preserves alphanumeric, cleanly slugs)
   sanitize_filename() {
-    local filename="$1"
-    local name_no_ext="${filename%.*}"
-    echo "$name_no_ext" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g' | sed -E 's/-+/-/g' | sed -E 's/^-//; s/-$//'
+    python3 -c "
+import sys, re, unicodedata, hashlib
+name = sys.argv[1]
+name_no_ext = name.rsplit('.', 1)[0] if '.' in name else name
+normalized = unicodedata.normalize('NFKD', name_no_ext).encode('ascii', 'ignore').decode('ascii')
+slug = re.sub(r'[^a-zA-Z0-9._-]+', '-', normalized.lower()).strip('-')
+slug = re.sub(r'-+', '-', slug)
+
+# If slug has no latin alphanumeric characters, preserve unicode letters/marks/numbers
+if not re.search(r'[a-z0-9]', slug):
+    chars = []
+    for ch in unicodedata.normalize('NFC', name_no_ext.lower()):
+        cat = unicodedata.category(ch)
+        if cat.startswith(('L', 'M', 'N')) or ch in '._-':
+            chars.append(ch)
+        else:
+            chars.append('-')
+    clean_unicode = re.sub(r'-+', '-', ''.join(chars)).strip('-')
+    if any(unicodedata.category(c).startswith(('L', 'N')) for c in clean_unicode):
+        slug = clean_unicode
+    else:
+        h = hashlib.md5(name_no_ext.encode('utf-8')).hexdigest()[:8]
+        slug = f'wall-{h}'
+print(slug)
+" "$1"
   }
 
   # 4. Process each image
@@ -154,20 +184,13 @@ if [ "$SYNC_ONLY" -eq 0 ]; then
 
     # Collision / Duplicate handling
     if [ -f "$dest_path" ]; then
-      src_size=$(stat -f%z "$src_path" 2>/dev/null || echo "0")
-      dest_size=$(stat -f%z "$dest_path" 2>/dev/null || echo "1")
-      if [ "$src_size" = "$dest_size" ]; then
-        echo -e "  ${C_YELLOW}• Skipped (duplicate):${C_RESET} $base_filename"
+      if [ "$FORCE_OVERWRITE" -eq 0 ]; then
+        echo -e "  ${C_YELLOW}• Skipped (already imported):${C_RESET} $base_filename ($dest_filename exists, use -f to overwrite)"
         SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
         continue
+      else
+        echo -e "  ${C_BLUE}• Overwriting existing:${C_RESET} $dest_filename"
       fi
-
-      idx=1
-      while [ -f "$CONVERTED_DIR/${clean_stem}_$idx.webp" ]; do
-        idx=$((idx + 1))
-      done
-      dest_filename="${clean_stem}_$idx.webp"
-      dest_path="$CONVERTED_DIR/$dest_filename"
     fi
 
     # Read source image dimensions
@@ -181,8 +204,12 @@ if [ "$SYNC_ONLY" -eq 0 ]; then
     fi
 
     RESIZE_FLAG=()
-    if [ "$src_h" -gt "$TARGET_HEIGHT" ]; then
-      RESIZE_FLAG=(-resize 0 "$TARGET_HEIGHT")
+    if [ "$src_h" -gt "$TARGET_HEIGHT" ] || [ "$src_w" -gt "$MAX_WIDTH" ]; then
+      if [ $((src_w * TARGET_HEIGHT)) -gt $((src_h * MAX_WIDTH)) ]; then
+        RESIZE_FLAG=(-resize "$MAX_WIDTH" 0)
+      else
+        RESIZE_FLAG=(-resize 0 "$TARGET_HEIGHT")
+      fi
     fi
 
     lower_ext="${base_filename##*.}"
@@ -238,12 +265,7 @@ if not os.path.isdir(converted_dir):
 
 # Collect all webp files in converted/, sorted alphabetically
 files = sorted([f for f in os.listdir(converted_dir) if f.lower().endswith(".webp") and not f.startswith(".")])
-
-# Deduplicate known redundant un-upscaled pairs (e.g. keep topaz/enhance version)
-seen_stems = {}
-filtered_files = []
-for f in files:
-    filtered_files.append(f"converted/{f}")
+filtered_files = [f"converted/{f}" for f in files]
 
 print(f"Total wallpapers indexed in converted/: {len(filtered_files)}")
 

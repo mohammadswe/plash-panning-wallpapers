@@ -208,6 +208,9 @@
       // eliminating duplicate clumping and the "same walls over and over" effect.
       let deck = [];
       let lastShown = "";
+      let isTransitioning = false;
+      let consecutiveErrors = 0;
+      const MAX_CONSECUTIVE_ERRORS = 5;
 
       function shuffle(array) {
         const copy = [...array];
@@ -246,14 +249,32 @@
           const savedDeck = JSON.parse(
             localStorage.getItem("wallpaper_deck") || "[]",
           );
-          if (
-            Array.isArray(savedDeck) &&
-            savedDeck.length > 0 &&
-            savedDeck.every((img) => images.includes(img))
-          ) {
-            deck = savedDeck;
-          }
           lastShown = localStorage.getItem("current_wallpaper") || "";
+
+          if (Array.isArray(savedDeck) && savedDeck.length > 0) {
+            // Keep only valid images that still exist in current images array
+            const validSavedDeck = savedDeck.filter((img) =>
+              images.includes(img),
+            );
+
+            // Find any newly added images not present in savedDeck or currently showing
+            const newImages = images.filter(
+              (img) => !validSavedDeck.includes(img) && img !== lastShown,
+            );
+
+            if (newImages.length > 0) {
+              // Interleave newly added images randomly into remaining deck
+              const shuffledNew = shuffle(newImages);
+              for (const img of shuffledNew) {
+                const insertIdx = Math.floor(
+                  Math.random() * (validSavedDeck.length + 1),
+                );
+                validSavedDeck.splice(insertIdx, 0, img);
+              }
+            }
+
+            deck = validSavedDeck;
+          }
         } catch (_) {
           deck = [];
         }
@@ -333,16 +354,30 @@
       }
 
       function cycleWallpaper() {
+        if (isTransitioning) return;
+
         const targetSrc = getNextWallpaper();
         if (!targetSrc) return;
 
+        isTransitioning = true;
+
         nextLayer.onerror = () => {
           console.warn("[live-walls] Failed to load:", targetSrc);
-          // Advance to the next card if decode fails
-          setTimeout(cycleWallpaper, 100);
+          isTransitioning = false;
+          consecutiveErrors++;
+          if (
+            consecutiveErrors >= Math.min(MAX_CONSECUTIVE_ERRORS, images.length)
+          ) {
+            console.error(
+              "[live-walls] Multiple consecutive image load failures. Halting cycle.",
+            );
+            return;
+          }
+          setTimeout(cycleWallpaper, 1000);
         };
 
         nextLayer.onload = () => {
+          consecutiveErrors = 0;
           startKenBurnsAnimation(nextLayer, INTERVAL_MS + FADE_MS);
 
           nextLayer.classList.add("active");
@@ -354,7 +389,8 @@
 
             syncNativeTheme(targetSrc);
             menubarGlass?.syncToBackdrop?.();
-          }, FADE_MS - 500);
+            isTransitioning = false;
+          }, FADE_MS);
         };
         nextLayer.src = targetSrc;
       }
@@ -371,10 +407,12 @@
 
         currentLayer.onerror = () => {
           console.warn("[live-walls] Failed to load initial:", initialSrc);
-          setTimeout(cycleWallpaper, 100);
+          consecutiveErrors++;
+          setTimeout(cycleWallpaper, 1000);
         };
 
         currentLayer.onload = () => {
+          consecutiveErrors = 0;
           startKenBurnsAnimation(currentLayer, INTERVAL_MS);
           requestAnimationFrame(() => {
             currentLayer.style.transition = "";
