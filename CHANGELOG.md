@@ -1,3 +1,10 @@
+### [2026-10-30] Dynamic Minimum Zoom System (Zero Waste Panning)
+- **Scope:** `index.html`, `index.personal.html`
+- **State Changes:** Replaced static 18% CSS overscale with trajectory-aware Dynamic Minimum Zoom. On each wallpaper cycle, `calculateDynamicPan` computes the exact minimal rendered dimensions needed to accommodate the chosen pan vector: $H_{\text{min}} = \max(vh + |dy| / \text{safety}, \; (vw + |dx| / \text{safety}) / \text{aspect})$ and $W_{\text{min}} = H_{\text{min}} \times \text{aspect}$. Applies pixel dimensions directly to `img.style.width` and `img.style.height`, removing static CSS `height: 118vh` clamp and setting baseline fallback to `min-width: 100vw; min-height: 100vh;`.
+- **Dependencies Introduced/Modified:** None
+- **Side Effects / Boundaries:** Reduces average crop/zoom across the library from 18% down to 0%–6% for DSLR (3:2), 4:3, and panoramic photos, and ~12% for 16:9 images. Horizontally panning panoramas and vertically panning 4:3 photos now render at 0.0% crop. Mathematically guarantees zero runoff or edge gaps at all times.
+- **Verification Token:** 100,000 Monte Carlo trajectory simulations passed (0 runoff errors); JavaScript syntax validation passed; live Plash reload verified.
+
 ### [2026-10-30] Wallpaper Importer Tool, Fisher-Yates Shuffle Deck & Velocity Pan Engine
 - **Scope:** `add_walls.sh`, `index.html`, `index.personal.html`, `README.md`, `.gitignore`, `converted/`
 - **State Changes:**

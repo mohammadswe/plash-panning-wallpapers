@@ -37,11 +37,8 @@
         position: absolute;
         top: 0;
         left: 0;
-        /* Ensure image is overscaled slightly in both dimensions to allow headroom */
-        min-width: 118vw;
-        min-height: 118vh;
-        width: auto;
-        height: 118vh;
+        min-width: 100vw;
+        min-height: 100vh;
 
         /* GPU promotion & subpixel anti-aliasing */
         will-change: transform, opacity;
@@ -262,51 +259,51 @@
         }
       }
 
-      function calculatePanVector(imgEl, durationMs) {
+      function calculateDynamicPan(imgEl, durationMs) {
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         const durationSec = durationMs / 1000;
 
-        // Headroom overscale factor (18% headroom guarantees generous 360-degree panning room)
-        const OVERSCALE = 1.18;
-        const renderedHeight = vh * OVERSCALE;
-        const aspect = (imgEl.naturalWidth || 16) / (imgEl.naturalHeight || 9);
-        const renderedWidth = Math.max(renderedHeight * aspect, vw * OVERSCALE);
-
-        // Maximum available slack before edges would be revealed
-        const maxSlackX = renderedWidth - vw;
-        const maxSlackY = renderedHeight - vh;
+        const natW = imgEl.naturalWidth || vw;
+        const natH = imgEl.naturalHeight || vh;
+        const aspect = natW / natH;
 
         // Visual linear speed: min ~3.0 px/s, avg ~4.0 px/s, max ~5.0 px/s
-        const speed = 3.0 + Math.random() * 2.0; // 3.0 to 5.0 px/s
+        const speed = 3.0 + Math.random() * 2.0;
         const travelDist = speed * durationSec;
 
-        // True 360-degree random angle
+        // Choose random 360-degree direction angle
         const angle = Math.random() * 2 * Math.PI;
-        let dx = travelDist * Math.cos(angle);
-        let dy = travelDist * Math.sin(angle);
+        const dx = travelDist * Math.cos(angle);
+        const dy = travelDist * Math.sin(angle);
 
-        // Clamp displacement to 90% of available slack so it never touches viewport boundaries
-        const safety = 0.9;
-        let clampScale = 1.0;
-        if (Math.abs(dx) > maxSlackX * safety) {
-          clampScale = Math.min(clampScale, (maxSlackX * safety) / Math.abs(dx));
-        }
-        if (Math.abs(dy) > maxSlackY * safety) {
-          clampScale = Math.min(clampScale, (maxSlackY * safety) / Math.abs(dy));
-        }
-        dx *= clampScale;
-        dy *= clampScale;
+        // Safety margin (8% buffer guarantees image never touches physical viewport boundary)
+        const safety = 0.92;
 
-        // Pick a random starting coordinate strictly inside the valid slack window
-        // startX and endX are mathematically guaranteed to stay in [-maxSlackX, 0]
-        const minStartX = -maxSlackX + Math.max(0, -dx);
+        // Exact minimum dimensions required to cover viewport AND accommodate trajectory
+        const renderedHeight = Math.max(
+          vh + Math.abs(dy) / safety,
+          (vw + Math.abs(dx) / safety) / aspect,
+        );
+        const renderedWidth = renderedHeight * aspect;
+
+        // Apply calculated dimensions directly to DOM element
+        imgEl.style.width = `${renderedWidth.toFixed(1)}px`;
+        imgEl.style.height = `${renderedHeight.toFixed(1)}px`;
+
+        // Physical slack in each dimension (guaranteed >= |dx| / safety and |dy| / safety)
+        const slackX = renderedWidth - vw;
+        const slackY = renderedHeight - vh;
+
+        // Pick random starting coordinate inside valid slack window
+        // startX and endX are mathematically guaranteed to stay in [-slackX, 0]
+        const minStartX = -slackX + Math.max(0, -dx);
         const maxStartX = 0 - Math.max(0, dx);
         const startX = minStartX + Math.random() * (maxStartX - minStartX);
         const endX = startX + dx;
 
-        // startY and endY are mathematically guaranteed to stay in [-maxSlackY, 0]
-        const minStartY = -maxSlackY + Math.max(0, -dy);
+        // startY and endY are mathematically guaranteed to stay in [-slackY, 0]
+        const minStartY = -slackY + Math.max(0, -dy);
         const maxStartY = 0 - Math.max(0, dy);
         const startY = minStartY + Math.random() * (maxStartY - minStartY);
         const endY = startY + dy;
@@ -318,7 +315,7 @@
       }
 
       function startKenBurnsAnimation(imgEl, duration) {
-        const { from, to } = calculatePanVector(imgEl, duration);
+        const { from, to } = calculateDynamicPan(imgEl, duration);
         return imgEl.animate([{ transform: from }, { transform: to }], {
           duration,
           easing: "linear",
