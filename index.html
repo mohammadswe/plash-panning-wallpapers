@@ -38,10 +38,10 @@
         top: 0;
         left: 0;
         /* Ensure image is overscaled slightly in both dimensions to allow headroom */
-        min-width: 114vw;
-        min-height: 114vh;
+        min-width: 118vw;
+        min-height: 118vh;
         width: auto;
-        height: 114vh;
+        height: 118vh;
 
         /* GPU promotion & subpixel anti-aliasing */
         will-change: transform, opacity;
@@ -267,19 +267,13 @@
         const vh = window.innerHeight;
         const durationSec = durationMs / 1000;
 
-        // Headroom overscale factor (14% headroom ensures smooth 360-degree panning without edge gaps)
-        const OVERSCALE = 1.14;
+        // Headroom overscale factor (18% headroom guarantees generous 360-degree panning room)
+        const OVERSCALE = 1.18;
+        const renderedHeight = vh * OVERSCALE;
         const aspect = (imgEl.naturalWidth || 16) / (imgEl.naturalHeight || 9);
+        const renderedWidth = Math.max(renderedHeight * aspect, vw * OVERSCALE);
 
-        // True rendered dimension matching CSS min-width: 114vw, min-height: 114vh
-        const scale = Math.max(
-          (vw * OVERSCALE) / (imgEl.naturalWidth || vw),
-          (vh * OVERSCALE) / (imgEl.naturalHeight || vh),
-        );
-        const renderedWidth = (imgEl.naturalWidth || vw) * scale;
-        const renderedHeight = (imgEl.naturalHeight || vh) * scale;
-
-        // Maximum available slack before black borders appear
+        // Maximum available slack before edges would be revealed
         const maxSlackX = renderedWidth - vw;
         const maxSlackY = renderedHeight - vh;
 
@@ -292,8 +286,8 @@
         let dx = travelDist * Math.cos(angle);
         let dy = travelDist * Math.sin(angle);
 
-        // Keep displacement inside available slack (with 96% safety cushion)
-        const safety = 0.96;
+        // Clamp displacement to 90% of available slack so it never touches viewport boundaries
+        const safety = 0.9;
         let clampScale = 1.0;
         if (Math.abs(dx) > maxSlackX * safety) {
           clampScale = Math.min(clampScale, (maxSlackX * safety) / Math.abs(dx));
@@ -304,12 +298,14 @@
         dx *= clampScale;
         dy *= clampScale;
 
-        // Pick a random starting coordinate within the valid slack window
+        // Pick a random starting coordinate strictly inside the valid slack window
+        // startX and endX are mathematically guaranteed to stay in [-maxSlackX, 0]
         const minStartX = -maxSlackX + Math.max(0, -dx);
         const maxStartX = 0 - Math.max(0, dx);
         const startX = minStartX + Math.random() * (maxStartX - minStartX);
         const endX = startX + dx;
 
+        // startY and endY are mathematically guaranteed to stay in [-maxSlackY, 0]
         const minStartY = -maxSlackY + Math.max(0, -dy);
         const maxStartY = 0 - Math.max(0, dy);
         const startY = minStartY + Math.random() * (maxStartY - minStartY);
