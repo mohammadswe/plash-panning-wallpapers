@@ -6,6 +6,8 @@ photos/
 # User-specific local files
 index.personal.html
 *.local.html
+*.bak
+__pycache__/
 
 # macOS system files
 .DS_Store

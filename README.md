@@ -25,23 +25,16 @@ live-walls/
     └── photo3.webp
 ```
 
-### 3. Generate the Image List
-Open **Terminal**, navigate to your folder:
+### 3. Add Wallpapers (Automatic Importer)
+Simply run the included `add_walls.sh` tool:
 ```bash
-cd ~/Pictures/live-walls
+./add_walls.sh
 ```
+* **Drag and drop** your image files or photo folders directly into the Terminal window and hit **Enter**.
+* Or pass them directly: `./add_walls.sh ~/Downloads/*.jpg`
+* The tool automatically optimizes each photo to Retina 5K WebP, clamps excessive dimensions to protect WebKit memory, strips metadata, and registers them directly into `index.html`.
 
-Run this command. It automatically scans your `images/` folder, formats the file paths, and **copies them directly to your macOS clipboard**:
-```bash
-find images -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) | sort | sed 's/.*/  "&",/' | pbcopy
-```
-
-*(If your photos are directly in the same folder as `index.html` instead of an `images/` subfolder, replace `images` with `.`)*
-
-### 4. Paste Into `index.html`
-1. Open `index.html` in your favorite code editor (or macOS TextEdit in **Plain Text** mode: `Format > Make Plain Text` / `Cmd+Shift+T`).
-2. Replace the placeholder lines in `const images = [ ... ];` with `Cmd + V`.
-3. Save the file.
+*(To re-index existing wallpapers without adding new files, simply run `./add_walls.sh --sync`)*
 
 ### 5. Set as Wallpaper in Plash
 1. Click the **Plash icon** in your macOS menu bar.
