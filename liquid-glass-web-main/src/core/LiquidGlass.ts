@@ -106,6 +106,7 @@ const DEFAULT_OPTIONS: ResolvedOptions = {
   fallbackFilter: 'blur(20px) saturate(1.8)',
   respectReducedMotion: true,
   rimPosition: 'top',
+  fps: 15,
 };
 
 /** rAF-debounced regen so dragging/resizing doesn't run the pixel loop hot. */
@@ -811,12 +812,34 @@ export class LiquidGlass {
     // Adaptive elements share one throttled scroll sampler instead of each
     // attaching an elementsFromPoint/getComputedStyle loop to scroll.
     this.refreshBackdropSamplingSubscription();
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
   }
 
   /** Access the optical lens engine on the scene refraction path. */
   get lens(): SceneOpticalLens | null {
     return this.sceneLens;
   }
+
+  get scene(): SceneOpticalLens | null {
+    return this.sceneLens;
+  }
+
+  get isSuspended(): boolean {
+    return this.suspended;
+  }
+
+  private onVisibilityChange = (): void => {
+    if (typeof document !== 'undefined') {
+      if (document.hidden) {
+        this.suspend();
+      } else {
+        this.resume();
+      }
+    }
+  };
 
   /** Access the cloned scene element on the fallback refraction path. */
   get clone(): HTMLElement | null {
@@ -874,6 +897,7 @@ export class LiquidGlass {
         profile: this.options.profile,
         preset: this.options.preset,
         rimPosition: this.options.rimPosition,
+        fps: this.options.fps,
       });
     }
 
@@ -959,12 +983,15 @@ export class LiquidGlass {
   /** Detach the GPU filter but keep the instance alive (cheap show/hide). */
   suspend(): void {
     if (this.suspended || this.destroyed) return;
-    this.sceneLens?.suspend();
-    this.setScrollSafeMode('svg');
     this.suspended = true;
+    if (this.sceneLens) {
+      this.sceneLens.suspend();
+    } else {
+      this.removeFallbackFx();
+    }
+    this.setScrollSafeMode('svg');
     this.cancelPendingBuild();
     this.removeScrollSafeTransitionLayer();
-    this.removeFallbackFx();
     this.teardownGpu();
     this.element.style.backdropFilter = 'none';
     (this.element.style as WebkitStyle).webkitBackdropFilter = 'none';
@@ -974,8 +1001,9 @@ export class LiquidGlass {
   resume(): void {
     if (!this.suspended || this.destroyed) return;
     this.suspended = false;
-    this.sceneLens?.resume();
-    if (this.usesFallback && !this.reducedTransparency && this.tryInstallGpu()) {
+    if (this.sceneLens) {
+      this.sceneLens.resume();
+    } else if (this.usesFallback && !this.reducedTransparency && this.tryInstallGpu()) {
       this.usesGpu = true;
     } else if (this.usesFallback) {
       this.applyFallback();
@@ -993,6 +1021,9 @@ export class LiquidGlass {
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    }
     if (this.regenTimer !== null) {
       clearTimeout(this.regenTimer);
       this.regenTimer = null;
@@ -1427,6 +1458,7 @@ export class LiquidGlass {
       profile: this.options.profile,
       preset: this.options.preset,
       rimPosition: this.options.rimPosition,
+      fps: this.options.fps,
     });
 
     this.backdropSceneEl = scene;
@@ -2086,6 +2118,7 @@ export class LiquidGlass {
       fallbackFilter: opts.fallbackFilter ?? DEFAULT_OPTIONS.fallbackFilter,
       respectReducedMotion: opts.respectReducedMotion ?? DEFAULT_OPTIONS.respectReducedMotion,
       rimPosition: opts.rimPosition ?? DEFAULT_OPTIONS.rimPosition,
+      fps: opts.fps ?? DEFAULT_OPTIONS.fps,
     };
   }
 
@@ -2117,6 +2150,7 @@ export class LiquidGlass {
       fallbackFilter: o.fallbackFilter,
       respectReducedMotion: o.respectReducedMotion,
       rimPosition: o.rimPosition,
+      fps: o.fps,
     };
   }
 }

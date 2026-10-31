@@ -108,6 +108,8 @@ export interface LiquidGlassOptions {
   mapPixelRatio?: number;
   /** Rim bevel & chromatic aberration position for bar profiles ('top' | 'bottom'). Default: 'top'. */
   rimPosition?: 'top' | 'bottom';
+  /** Target framerate for SceneOpticalLens animation loop (1–60). Default: 15. */
+  fps?: number;
 
   // ── Production / Chrome-extension knobs ──────────────────────────────────
 
@@ -180,6 +182,7 @@ export interface ResolvedOptions {
   fallbackFilter: string;
   respectReducedMotion: boolean;
   rimPosition: 'top' | 'bottom';
+  fps: number;
 }
 
 export interface LiquidGlassResolvedState {

@@ -3,6 +3,7 @@
   "specifiers": {
     "npm:@types/node@^25.9.1": "25.9.1",
     "npm:typescript@^5.6.3": "5.9.3",
+    "npm:vite@*": "6.4.2_@types+node@25.9.1",
     "npm:vite@6": "6.4.2_@types+node@25.9.1"
   },
   "npm": {

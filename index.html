@@ -93,7 +93,7 @@
       <div id="menubar-glass" class="liquid-glass" aria-hidden="true"></div>
     </div>
 
-    <script src="liquid-glass.umd.js?v=3"></script>
+    <script src="liquid-glass.umd.js?v=4"></script>
     <script>
       // Add all your converted files here
       const images = [
@@ -193,7 +193,7 @@
         "converted/towfiq-islam-NFS5c0-0Bww-unsplash.webp",
         "converted/towfiq-islam-tVER-9XAaaI-unsplash.webp",
         "converted/upscalemedia-transformed.webp",
-        "converted/vietnam-beautiful-itM5EI3VnOk-unsplash.webp"
+        "converted/vietnam-beautiful-itM5EI3VnOk-unsplash.webp",
       ];
 
       const INTERVAL_MS = 60000; // 1 minute per photo
@@ -491,7 +491,7 @@
               chromaticAberration: 0.6,
               quality: "high",
               specular: true,
-              specularIntensity: 0.2,
+              specularIntensity: 0.1,
               blur: 1.5,
               saturation: 140,
               scheme: "dark",
@@ -501,10 +501,21 @@
               radius: 0,
               rimPosition: "bottom",
               backdropSource: "#wallpaper-scene",
+              fps: 15,
               fallbackFilter:
                 "blur(var(--menubar-blur)) saturate(var(--menubar-saturate))",
             })
           : null;
+      window.menubarGlass = menubarGlass;
+
+      // Option C: Page Visibility & Screen Lock Suspension
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          menubarGlass?.suspend?.();
+        } else {
+          menubarGlass?.resume?.();
+        }
+      });
 
       // Warm-start initial photo immediately with zero black delay
       initWallpaper();

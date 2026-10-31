@@ -21,6 +21,7 @@ export interface SceneOpticalLensOptions {
   profile?: string;
   preset?: string;
   rimPosition?: 'top' | 'bottom'; // default 'top' (flipped 180 degrees)
+  fps?: number; // target render framerate (default 15 for optimal balance of smooth motion & low CPU)
 }
 
 function drawImageSafe(
@@ -119,6 +120,7 @@ export class SceneOpticalLens {
       profile: options.profile ?? 'bar',
       preset: options.preset ?? 'dramatic',
       rimPosition: options.rimPosition ?? 'top',
+      fps: options.fps ?? 15,
     };
 
     // Ensure parent element clips bleed padding from the blurred refract canvas
@@ -237,6 +239,7 @@ export class SceneOpticalLens {
     if (partial.profile !== undefined) this.options.profile = partial.profile;
     if (partial.preset !== undefined) this.options.preset = partial.preset;
     if (partial.rimPosition !== undefined) this.options.rimPosition = partial.rimPosition;
+    if (partial.fps !== undefined) this.options.fps = partial.fps;
 
     if (filterChanged) {
       this.updateFilter();
@@ -244,6 +247,18 @@ export class SceneOpticalLens {
     if (sizeChanged) {
       this.resize();
     }
+  }
+
+  get isSuspended(): boolean {
+    return this.suspended;
+  }
+
+  get isRunning(): boolean {
+    return this.rafId !== 0;
+  }
+
+  get currentFps(): number {
+    return this.options.fps;
   }
 
   suspend(): void {
@@ -257,6 +272,7 @@ export class SceneOpticalLens {
   resume(): void {
     if (!this.suspended || this.destroyed) return;
     this.suspended = false;
+    this.render();
     this.startLoop();
   }
 
@@ -489,10 +505,15 @@ export class SceneOpticalLens {
   }
 
   private startLoop(): void {
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = 0;
+    }
     const tick = (now: number): void => {
       if (this.destroyed || this.suspended) return;
-      // Cap at ~60fps
-      if (now - this.lastRenderTime >= 15) {
+      const targetFps = Math.min(60, Math.max(1, this.options.fps || 15));
+      const targetInterval = 1000 / targetFps;
+      if (now - this.lastRenderTime >= targetInterval - 2) {
         this.render();
         this.lastRenderTime = now;
       }
