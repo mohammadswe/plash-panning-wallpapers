@@ -1,3 +1,13 @@
+### [2026-10-31] Fix Wallpaper Deck Recycling & Implement Library Snapshot Tracking
+- **Scope:** `index.html`, `index.personal.html`
+- **State Changes:**
+  1. **Library Snapshot Tracking (`wallpaper_library`)**: Resolved a defect in `initDeck()` where any wallpaper not present in `savedDeck` was misidentified as a "newly added image". Because previously played cards are removed from the deck on display, every Plash reload, screen wake, or script execution falsely treated all played cards as new images and spliced them back into the active queue. Now records `wallpaper_library` snapshot in `localStorage` and determines new images strictly via `images.filter(img => !savedLibrary.includes(img))`. Zero previously played wallpapers are ever recycled back into an in-progress deck cycle.
+  2. **Startup / Wake Resume Guard (`initWallpaper`)**: Updated `initWallpaper()` to resume the currently active wallpaper (`lastShown`) on page reload or system wake if still valid in `images`, preventing premature card burning on wake-up events.
+  3. **Verification History & Debug API (`window.liveWalls`)**: Added `recordHistory()` maintaining a rolling log of the last 50 displayed wallpapers with ISO timestamps in `localStorage` (`wallpaper_history`). Exposed `window.liveWalls.getStats()` returning library total, remaining deck count, active wallpaper, and recent history for instant runtime auditability.
+- **Dependencies Introduced/Modified:** None
+- **Side Effects / Boundaries:** Preserves exact Ken Burns kinematics and LiquidGlass effects. Eliminates the repeating wallpaper loop; guarantees all 97 wallpapers play before any repeats.
+- **Verification Token:** Deno JavaScript AST validation passed; 3-cycle Monte Carlo reload simulation passed (0 duplicates across 291 plays); Plash SQLite database seeded and verified live; Plash webview reloaded.
+
 ### [2026-10-30] Comprehensive Audit Fixes (Import Overwrite, Bounds Clamping, Deck Interleaving & Error Circuit Breaker)
 - **Scope:** `add_walls.sh`, `index.html`, `index.personal.html`
 - **State Changes:**

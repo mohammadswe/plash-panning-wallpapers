@@ -221,6 +221,20 @@
         return copy;
       }
 
+      function recordHistory(imagePath) {
+        try {
+          const history = JSON.parse(
+            localStorage.getItem("wallpaper_history") || "[]",
+          );
+          history.unshift({
+            file: imagePath,
+            time: new Date().toISOString(),
+          });
+          if (history.length > 50) history.pop();
+          localStorage.setItem("wallpaper_history", JSON.stringify(history));
+        } catch (_) {}
+      }
+
       function getNextWallpaper() {
         if (!images || images.length === 0) return "";
         if (images.length === 1) return images[0];
@@ -233,6 +247,9 @@
             const swapIdx = Math.floor(Math.random() * (deck.length - 1)) + 1;
             [deck[0], deck[swapIdx]] = [deck[swapIdx], deck[0]];
           }
+          try {
+            localStorage.setItem("wallpaper_library", JSON.stringify(images));
+          } catch (_) {}
         }
 
         const next = deck.shift();
@@ -240,6 +257,7 @@
         try {
           localStorage.setItem("current_wallpaper", next);
           localStorage.setItem("wallpaper_deck", JSON.stringify(deck));
+          recordHistory(next);
         } catch (_) {}
         return next;
       }
@@ -249,7 +267,15 @@
           const savedDeck = JSON.parse(
             localStorage.getItem("wallpaper_deck") || "[]",
           );
+          const savedLibrary = JSON.parse(
+            localStorage.getItem("wallpaper_library") || "[]",
+          );
           lastShown = localStorage.getItem("current_wallpaper") || "";
+
+          // Seed library snapshot if not present
+          if (!Array.isArray(savedLibrary) || savedLibrary.length === 0) {
+            localStorage.setItem("wallpaper_library", JSON.stringify(images));
+          }
 
           if (Array.isArray(savedDeck) && savedDeck.length > 0) {
             // Keep only valid images that still exist in current images array
@@ -257,23 +283,31 @@
               images.includes(img),
             );
 
-            // Find any newly added images not present in savedDeck or currently showing
-            const newImages = images.filter(
-              (img) => !validSavedDeck.includes(img) && img !== lastShown,
+            // Truly new images are images currently on disk that were NOT in the saved library snapshot.
+            // This strictly isolates newly imported files and NEVER re-injects already-played wallpapers!
+            const trulyNewImages = images.filter(
+              (img) =>
+                Array.isArray(savedLibrary) &&
+                savedLibrary.length > 0 &&
+                !savedLibrary.includes(img),
             );
 
-            if (newImages.length > 0) {
+            if (trulyNewImages.length > 0) {
               // Interleave newly added images randomly into remaining deck
-              const shuffledNew = shuffle(newImages);
+              const shuffledNew = shuffle(trulyNewImages);
               for (const img of shuffledNew) {
                 const insertIdx = Math.floor(
                   Math.random() * (validSavedDeck.length + 1),
                 );
                 validSavedDeck.splice(insertIdx, 0, img);
               }
+              // Update snapshot to include the newly added images
+              localStorage.setItem("wallpaper_library", JSON.stringify(images));
             }
 
             deck = validSavedDeck;
+          } else {
+            deck = [];
           }
         } catch (_) {
           deck = [];
@@ -397,7 +431,12 @@
 
       function initWallpaper() {
         initDeck();
-        const initialSrc = getNextWallpaper();
+        // If we have a valid lastShown from this session, resume it without burning a deck card;
+        // otherwise draw the next wallpaper from the deck.
+        const initialSrc =
+          lastShown && images.includes(lastShown)
+            ? lastShown
+            : getNextWallpaper();
         if (!initialSrc) return;
 
         syncNativeTheme(initialSrc);
@@ -420,6 +459,24 @@
         };
         currentLayer.src = initialSrc;
       }
+
+      // Verification / Debugging API (inspectable via DevTools or external scripts)
+      window.liveWalls = {
+        getStats: () => {
+          const savedDeck = JSON.parse(
+            localStorage.getItem("wallpaper_deck") || "[]",
+          );
+          const history = JSON.parse(
+            localStorage.getItem("wallpaper_history") || "[]",
+          );
+          return {
+            totalLibrary: images.length,
+            deckRemaining: savedDeck.length,
+            currentWallpaper: lastShown,
+            recentHistory: history,
+          };
+        },
+      };
 
       // Initialize Apple Liquid Glass effect on the navbar
       const menubarEl = document.getElementById("menubar-glass");
