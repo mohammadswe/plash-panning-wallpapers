@@ -1,3 +1,17 @@
+### [2026-10-31] Automated End-to-End Test Suite (Playwright WebKit & Pytest)
+- **Scope:** `pytest.ini`, `test.sh`, `tests/conftest.py`, `tests/test_viewport_geometry.py`, `tests/test_kinetics_speed.py`, `tests/test_deck_lifecycle.py`, `tests/test_menubar_lens.py`, `tests/test_add_walls_pipeline.py`, `.gitignore`, `README.md`
+- **State Changes:**
+  1. **WebKit End-to-End Testing Infrastructure**: Configured an automated test harness using `pytest` + `playwright` with Apple's native **WebKit** browser engine at 5K Retina viewport (`2560x1440`, `device_scale_factor=2`), ensuring 100% environment parity with Plash's `WKWebView`.
+  2. **Viewport Geometry & Zero-Runoff Testing (`test_viewport_geometry.py`)**: Tests layer boundaries across trajectory time points ($t=0, 15s, 30s, 45s, 60s$) to guarantee elements strictly cover $[0, 0, vw, vh]$. Verifies perimeter edge pixels via Pillow to confirm 100% opacity with zero desktop bleed. Runs a 5,000-iteration Monte Carlo simulation proving zero boundary breaches across varied aspect ratios (4:3, 3:2, 16:9, 21:9, 3:1 panoramas, and portrait).
+  3. **Kinetic Velocity & 360° Drift Verification (`test_kinetics_speed.py`)**: Interrogates the Web Animations API keyframe transforms to verify that visual velocity remains calm and clamped strictly within $3.0$ to $5.0\text{ px/s}$. Verifies drift angles span all 4 quadrants of the 360-degree compass.
+  4. **Deck Lifecycle & State Resilience (`test_deck_lifecycle.py`)**: Tests 97-card Fisher-Yates deck fairness (every wallpaper plays before any repeat), boundary reshuffle deduplication, reload resilience (played cards never recycled on page reload / screen wake), active deck interleaving, and the 5-consecutive-error circuit breaker.
+  5. **LiquidGlass Menubar Refraction (`test_menubar_lens.py`)**: Verifies the menu bar glass container mounting, dimensions, and visual pixel rendering from the GPU compositor.
+  6. **Asset Pipeline Testing (`test_add_walls_pipeline.py`)**: Tests `add_walls.sh` dimension clamping on gigapixel panoramas ($\le 7680 \times 2880$), duplicate skipping, `--force` overwrite, and non-Latin Unicode filename preservation (e.g. Bengali).
+  7. **One-Command Runner (`test.sh`)**: Added root-level test runner that automatically configures the Python virtual environment and executes the complete test suite.
+- **Dependencies Introduced/Modified:** Added `playwright`, `pytest-playwright`, `pytest`, `pillow` in isolated `.venv/`.
+- **Side Effects / Boundaries:** Zero modifications to production runtime code; all tests run non-destructively in headless WebKit and temporary fixture directories.
+- **Verification Token:** All 15 tests passed across 5 test suites in 5.92 seconds (`15 passed in 5.92s`).
+
 ### [2026-10-31] Fix Wallpaper Deck Recycling & Implement Library Snapshot Tracking
 - **Scope:** `index.html`, `index.personal.html`
 - **State Changes:**

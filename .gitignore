@@ -1,4 +1,7 @@
-# Photos and converted wallpaper directories
+# Virtual environment and test caches
+.venv/
+.pytest_cache/
+test-results/
 converted/
 images/
 photos/

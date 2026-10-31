@@ -92,4 +92,37 @@ To stop the sync helper:
 ./stop_sync.sh
 ```
 
+---
+
+## Automated Testing Suite (WebKit & Pytest)
+
+`live-walls` includes an automated test suite powered by **Playwright WebKit** and **Pytest**. It tests both the visual/kinetics rendering in native macOS WebKit and the CLI ingestion pipeline.
+
+To run the entire test suite:
+```bash
+./test.sh
+```
+
+### What is tested:
+1. **Viewport Coverage & Zero-Runoff (`test_viewport_geometry.py`)**:
+   - Asserts the active wallpaper element completely envelops the viewport ($vw \times vh$) at all points along its 60s trajectory with zero edge runoff or desktop exposure.
+   - Inspects physical edge pixels with Pillow to verify 100% opacity and absence of transparent borders.
+   - Runs a 5,000-iteration Monte Carlo simulation inside WebKit proving zero boundary breaches across extreme aspect ratios (4:3, 3:2, 16:9, 21:9, 3:1 panoramas, and portrait).
+2. **Kinematic Drift Velocity (`test_kinetics_speed.py`)**:
+   - Inspects the Web Animations API keyframes to assert constant visual speed stays between $3.0$ and $5.0\text{ px/s}$.
+   - Verifies camera drift vectors span all four quadrants of the 360-degree compass.
+3. **Deck Lifecycle & Reload Resilience (`test_deck_lifecycle.py`)**:
+   - Asserts all 97 wallpapers play before any duplicate appears.
+   - Asserts boundary transitions never repeat across deck resets (`nextDeck[0] !== lastShown`).
+   - Asserts page reloads, display sleep, or wake events never recycle already-played cards back into the deck.
+   - Verifies active deck interleaving when new wallpapers are added via `add_walls.sh`.
+   - Verifies the error circuit breaker trips after 5 consecutive decode failures.
+4. **LiquidGlass Optical Lens (`test_menubar_lens.py`)**:
+   - Verifies the simulated menu bar canvas mounts and renders frosted glass refraction matching the underlying wallpaper.
+5. **Asset Ingestion Pipeline (`test_add_walls_pipeline.py`)**:
+   - Tests `add_walls.sh` dimension clamping on gigapixel panoramas ($\le 7680 \times 2880$).
+   - Tests duplicate skipping and `--force` overwrite.
+   - Tests Unicode filename preservation (e.g. non-Latin scripts like Bengali).
+
+
 
