@@ -249,62 +249,9 @@ print(slug)
   echo -e "${C_BOLD}Import complete: $IMPORTED_COUNT added, $SKIPPED_COUNT skipped.${C_RESET}"
 fi
 
-# 5. Synchronize index.html and index.personal.html
+# 5. Synchronize wallpaper library in HTML files
 echo -e "Synchronizing wallpaper library in HTML files..."
-
-python3 - << 'EOF'
-import os
-import re
-
-base_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in locals() else os.getcwd()
-converted_dir = os.path.join(base_dir, "converted")
-
-if not os.path.isdir(converted_dir):
-    print("No converted directory found.")
-    exit(0)
-
-# Collect all webp files in converted/, sorted alphabetically
-files = sorted([f for f in os.listdir(converted_dir) if f.lower().endswith(".webp") and not f.startswith(".")])
-filtered_files = [f"converted/{f}" for f in files]
-
-print(f"Total wallpapers indexed in converted/: {len(filtered_files)}")
-
-# Format replacement JS block
-formatted_js = "const images = [\n" + ",\n".join(f'        "{img}"' for img in filtered_files) + "\n      ];"
-
-target_html_files = ["index.html", "index.personal.html"]
-
-for target in target_html_files:
-    path = os.path.join(base_dir, target)
-    if not os.path.isfile(path):
-        continue
-
-    with open(path, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    # Pattern matching const images = [ ... ];
-    pattern = r"const images = \[\s*[\s\S]*?\s*\];"
-    if not re.search(pattern, content):
-        print(f"  [Warning] Could not find 'const images = [...]' in {target}. Skipped.")
-        continue
-
-    # Backup file
-    bak_path = path + ".bak"
-    with open(bak_path, "w", encoding="utf-8") as f:
-        f.write(content)
-
-    new_content = re.sub(pattern, formatted_js, content, count=1)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(new_content)
-
-    print(f"  ✓ Updated {target} ({len(filtered_files)} wallpapers registered, backup at {target}.bak)")
-EOF
-
-# 6. Automatically trigger Plash reload if running
-if pgrep -x "Plash" &>/dev/null; then
-  osascript -e 'tell application "System Events" to tell process "Plash" to tell menu bar item 1 of menu bar 2 to click menu item "Reload" of menu 1' &>/dev/null && \
-    echo -e "  ${C_CYAN}✓ Plash desktop reloaded automatically.${C_RESET}" || true
-fi
+python3 "$SCRIPT_DIR/sync_day_night.py"
 
 echo ""
 echo -e "${C_BOLD}${C_GREEN}All done!${C_RESET} Plash will display the updated wallpapers automatically."
