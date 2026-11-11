@@ -11,17 +11,18 @@ Download and install [Plash](https://github.com/sindresorhus/plash) (free on the
 
 ### 2. Prepare Your Folder
 1. Download `index.html` from this repository.
-2. Create a parent folder anywhere on your Mac (e.g. `~/Pictures/live-walls`) that will hold both your images and the `index.html`.
-3. Place `index.html` inside that folder.
-4. Create an `images` subfolder inside it and add your wallpaper photos (`.jpg`, `.png`, `.webp`, etc.).
-
-Your folder structure will look like this:
+2. Keep your `live-walls` directory organized with your converted assets and optional day/night lists:
 ```
 live-walls/
-├── index.html
-└── images/
-    ├── photo1.jpg
-    ├── photo2.png
+├── index.html              # Main Plash desktop webpage
+├── index.personal.html     # Optional personal configuration
+├── day.txt                 # Source-of-truth list for daytime wallpapers
+├── night.txt               # Source-of-truth list for nighttime wallpapers
+├── sync_day_night.sh       # Synchronizer updating HTML day/night arrays
+├── add_walls.sh            # Ingestion tool converting images to 5K WebP
+└── converted/              # Optimized Retina 5K WebP wallpapers
+    ├── photo1.webp
+    ├── photo2.webp
     └── photo3.webp
 ```
 
@@ -32,9 +33,9 @@ Simply run the included `add_walls.sh` tool:
 ```
 * **Drag and drop** your image files or photo folders directly into the Terminal window and hit **Enter**.
 * Or pass them directly: `./add_walls.sh ~/Downloads/*.jpg`
-* The tool automatically optimizes each photo to Retina 5K WebP, clamps excessive dimensions to protect WebKit memory, strips metadata, and registers them directly into `index.html`.
+* The tool automatically optimizes each photo to Retina 5K WebP, clamps excessive dimensions to protect WebKit memory, decodes AVIF/HEIC/TIFF/BMP cleanly through macOS `sips`, strips metadata, and automatically synchronizes them into `index.html`.
 
-*(To re-index existing wallpapers without adding new files, simply run `./add_walls.sh --sync`)*
+*(To re-index existing wallpapers without adding new files, run `./sync_day_night.sh` or `./add_walls.sh --sync`)*
 
 ### 5. Set as Wallpaper in Plash
 1. Click the **Plash icon** in your macOS menu bar.
@@ -62,6 +63,31 @@ Inside `index.html`, you can tweak these settings:
     --menubar-tint-dark: rgba(20, 20, 20, 0.32);          /* Dark mode glass tint */
   }
   ```
+
+---
+
+## Day & Night Theme Synchronization (macOS Appearance Aware)
+
+`live-walls` natively synchronizes your active wallpapers with your macOS system theme (Light Mode vs. Dark Mode), allowing your desktop to dynamically cycle daytime photos during the day and night cityscapes/skylines after sunset.
+
+### How It Works (0% CPU Overhead)
+- **Native WebKit Event Listener**: Uses `window.matchMedia("(prefers-color-scheme: dark)")` hooked directly into macOS CoreUI notifications (`AppleInterfaceThemeChangedNotification`).
+- **No Background Daemons**: Plash does not run any background polling timers or loops. The OS itself pushes the appearance event to the webview at sunrise/sunset (or whenever you toggle Dark Mode in Control Center).
+- **Dual Fisher-Yates Shuffle Decks**: Maintains independent, fair shuffle decks for `dayImages` and `nightImages`. When macOS transitions between themes, Plash smoothly switches to the new deck with a 3-second crossfade and boundary deduplication (avoiding immediate repeats).
+- **Multi-Day Uptime Resilience**: Built to run continuously for days or weeks without reloading or memory leaks.
+
+### Updating Day & Night Playlists
+Your source-of-truth lists live in:
+- `day.txt` (list of daytime wallpapers)
+- `night.txt` (list of nighttime wallpapers)
+
+To sync your lists with `index.html` and `index.personal.html`:
+```bash
+./sync_day_night.sh
+```
+* **Smart Normalization**: Accepts raw filenames (`Landscape_of_Shimla_,_Himachal_Pradesh.jpg`) and automatically maps them to their optimized WebP slugs in `converted/`.
+* **Graceful Default**: Any wallpaper in `converted/` that is not yet categorized in `day.txt` or `night.txt` automatically defaults to `dayImages`, so new imports are never orphaned.
+* **Auto-Reload**: If Plash is running, it automatically triggers an instant desktop reload via AppleScript.
 
 ---
 
@@ -123,6 +149,11 @@ To run the entire test suite:
    - Tests `add_walls.sh` dimension clamping on gigapixel panoramas ($\le 7680 \times 2880$).
    - Tests duplicate skipping and `--force` overwrite.
    - Tests Unicode filename preservation (e.g. non-Latin scripts like Bengali).
+6. **Day & Night Theme Synchronization (`test_day_night_theme.py`)**:
+   - Tests `sync_day_night.py` classification, graceful default for unassigned files, and ignoring stray metadata entries.
+   - Tests WebKit appearance mode emulation (Light mode strictly serves `dayImages`, Dark mode strictly serves `nightImages`).
+   - Tests live runtime appearance switching (`switchThemeDeck`).
+   - Tests night deck full rotation and boundary deduplication.
 
 
 
