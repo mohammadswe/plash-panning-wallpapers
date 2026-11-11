@@ -96,21 +96,13 @@
     <script src="liquid-glass.umd.js?v=4"></script>
     <script>
       // Add all your converted files here
-      const images = [
+      const dayImages = [
         "converted/829381720_122238105836559349_4246260331796505168_n-topaz.webp",
-        "converted/Landscape_of_Shimla_,_Himachal_Pradesh.webp",
-        "converted/National_Martyrs'_Monument_of_Bangladesh_at_night.webp",
-        "converted/Phewa_Lake_in_Pokhara_(15715573565).webp",
-        "converted/Ruppur_Nuclear_Power_Plant_,_Ruppur,_Pabna.webp",
         "converted/The_padma_bridge_02.webp",
         "converted/abul-basar-S2q5u2adc6k-unsplash.webp",
         "converted/ahmed-jubair-y31da-h0o3q-unsplash.webp",
-        "converted/andres-garcia-OgrfLCYqfVY-unsplash.webp",
         "converted/anik-das-0SiF0OBrgFI-unsplash.webp",
         "converted/ankit-bhattacharjee-2KQsbekDbCk-unsplash.webp",
-        "converted/arpon-mazumder-hx9m8g1294U-unsplash.webp",
-        "converted/austin-curtis-7_6g2z9JzQc-unsplash.webp",
-        "converted/bornil-amin-wNAlCZk7ATc-unsplash.webp",
         "converted/boudhayan-bardhan-K5iIFNr7DFE-unsplash.webp",
         "converted/boudhayan-bardhan-P7Ye9lDx0UI-unsplash.webp",
         "converted/boudhayan-bardhan-QmL51sNfFEk-unsplash.webp",
@@ -134,13 +126,12 @@
         "converted/expressive-capture-8VrmGtRAJi8-unsplash.webp",
         "converted/expressive-capture-TM_W3sVKZh8-unsplash.webp",
         "converted/hendrik-cornelissen-jpTT_SAU034-unsplash.webp",
-        "converted/jochen-van-wylick-SstmZ25r5UA-unsplash.webp",
         "converted/juho-s-uDk9n1yKxTw-unsplash.webp",
         "converted/khanh-do-o8xnKfYl0P4-unsplash.webp",
+        "converted/landscape_of_shimla_-_himachal_pradesh.webp",
         "converted/mahedi-hasan-gW8JWwWk7y0-unsplash.webp",
         "converted/mainul-islam-Lkh9ZhSDxuc-unsplash.webp",
-        "converted/manson-yim-lYDOrOkR_GU-unsplash.webp",
-        "converted/martin-skrivanek--sz-PCtnmFI-unsplash.webp",
+        "converted/martin-skrivanek-sz-pctnmfi-unsplash.webp",
         "converted/marwan-ahmed-vFClVPWFavA-unsplash.webp",
         "converted/marwan-ahmed-zcocsL8JjH4-unsplash.webp",
         "converted/md-rifat-UrvALLRrDYw-unsplash.webp",
@@ -163,10 +154,18 @@
         "converted/pexels-capturedbynadim-39298869.webp",
         "converted/pexels-ferdous-15023174.webp",
         "converted/pexels-mahidulislamnakib-39354157.webp",
+        "converted/pexels-md-mohibullah-khan-454786633-35882536.webp",
         "converted/pexels-md-samiuzzaman-sakib_-499442624-18573192.webp",
+        "converted/pexels-niaz-mahmud-sajib-1501352-12977892.webp",
+        "converted/pexels-sarowar-hussain-3111579-33977829.webp",
         "converted/pexels-somogrobangladesh-35188819.webp",
+        "converted/pexels-somogrobangladesh-37436617.webp",
         "converted/pexels-tanhatamannasyed-35371189.webp",
+        "converted/phewa_lake_in_pokhara_-15715573565.webp",
         "converted/polina-kneis-EzFO-hHImBo-unsplash.webp",
+        "converted/premium_photo-1697729439457-85d4b9d3a2cb.webp",
+        "converted/premium_photo-1697729626072-d3d3e418c443.webp",
+        "converted/premium_photo-1697729690458-2d64ca777c04.webp",
         "converted/preyas-patel-z6dSe_Wah2M-unsplash.webp",
         "converted/quy-pham-gyQiFLJxm58-unsplash.webp",
         "converted/rashed-kabir-38T2K-nNz5M-unsplash.webp",
@@ -185,15 +184,28 @@
         "converted/sheikh-abir-ali-uYa97wXymxw-unsplash.webp",
         "converted/sheikh-nayim-hasan-ogwcSsKRkhs-unsplash.webp",
         "converted/somoun-bo-di3tjWKMhco-unsplash.webp",
-        "converted/sourav-debnath-Voz7i1OUhJ0-unsplash.webp",
-        "converted/tamal-kumar-maur-cJ5e_0Ml3cM-unsplash.webp",
         "converted/tamil-nadu-377485.webp",
         "converted/thailand-7111496.webp",
         "converted/timo-volz-1jx-gZTja9s-unsplash.webp",
-        "converted/towfiq-islam-NFS5c0-0Bww-unsplash.webp",
-        "converted/towfiq-islam-tVER-9XAaaI-unsplash.webp",
         "converted/upscalemedia-transformed.webp",
-        "converted/vietnam-beautiful-itM5EI3VnOk-unsplash.webp",
+        "converted/vietnam-beautiful-itM5EI3VnOk-unsplash.webp"
+      ];
+
+      const nightImages = [
+        "converted/andres-garcia-OgrfLCYqfVY-unsplash.webp",
+        "converted/arpon-mazumder-hx9m8g1294U-unsplash.webp",
+        "converted/austin-curtis-7_6g2z9JzQc-unsplash.webp",
+        "converted/bornil-amin-wNAlCZk7ATc-unsplash.webp",
+        "converted/jochen-van-wylick-SstmZ25r5UA-unsplash.webp",
+        "converted/manson-yim-lYDOrOkR_GU-unsplash.webp",
+        "converted/national_martyrs-_monument_of_bangladesh_at_night.webp",
+        "converted/pexels-thakurscameraroll-14730118.webp",
+        "converted/ruppur_nuclear_power_plant_-_ruppur-_pabna.webp",
+        "converted/shimla_night.webp",
+        "converted/sourav-debnath-Voz7i1OUhJ0-unsplash.webp",
+        "converted/tamal-kumar-maur-cJ5e_0Ml3cM-unsplash.webp",
+        "converted/towfiq-islam-NFS5c0-0Bww-unsplash.webp",
+        "converted/towfiq-islam-tVER-9XAaaI-unsplash.webp"
       ];
 
       const INTERVAL_MS = 60000; // 1 minute per photo
@@ -202,6 +214,22 @@
 
       let currentLayer = document.getElementById("layerA");
       let nextLayer = document.getElementById("layerB");
+
+      // --- Appearance & Day/Night Mode Detection ---
+      function isNightMode() {
+        return (
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+        );
+      }
+
+      function getActiveLibrary() {
+        return isNightMode() ? nightImages : dayImages;
+      }
+
+      let currentTheme = isNightMode() ? "night" : "day";
+      // Expose 'images' pointing to the active theme pool for backwards compatibility and test suites
+      let images = getActiveLibrary();
 
       // --- Shuffle Deck System (Fisher-Yates) ---
       // Ensures every wallpaper plays exactly once before repeating,
@@ -235,7 +263,51 @@
         } catch (_) {}
       }
 
+      function switchThemeDeck(newTheme) {
+        if (!newTheme) newTheme = isNightMode() ? "night" : "day";
+        currentTheme = newTheme;
+        images = getActiveLibrary();
+
+        // Fresh shuffle of the target theme's library
+        deck = shuffle(images);
+        if (deck[0] === lastShown && deck.length > 1) {
+          const swapIdx = Math.floor(Math.random() * (deck.length - 1)) + 1;
+          [deck[0], deck[swapIdx]] = [deck[swapIdx], deck[0]];
+        }
+
+        try {
+          localStorage.setItem("wallpaper_theme", currentTheme);
+          localStorage.setItem("wallpaper_library", JSON.stringify(images));
+          localStorage.setItem("wallpaper_deck", JSON.stringify(deck));
+        } catch (_) {}
+      }
+
+      // Event listener for macOS appearance changes (0% CPU, push event from WebKit)
+      if (window.matchMedia) {
+        const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        const handleThemeChange = (e) => {
+          const newTheme = e.matches ? "night" : "day";
+          if (newTheme !== currentTheme) {
+            console.log(`[LiveWalls] System theme switched: ${currentTheme} -> ${newTheme}`);
+            switchThemeDeck(newTheme);
+          }
+        };
+        if (darkQuery.addEventListener) {
+          darkQuery.addEventListener("change", handleThemeChange);
+        } else if (darkQuery.addListener) {
+          darkQuery.addListener(handleThemeChange);
+        }
+      }
+
       function getNextWallpaper() {
+        // Defensive check: if system theme changed while asleep or between ticks
+        const activeTheme = isNightMode() ? "night" : "day";
+        if (activeTheme !== currentTheme) {
+          switchThemeDeck(activeTheme);
+        } else {
+          images = getActiveLibrary();
+        }
+
         if (!images || images.length === 0) return "";
         if (images.length === 1) return images[0];
 
@@ -264,6 +336,10 @@
 
       function initDeck() {
         try {
+          currentTheme = isNightMode() ? "night" : "day";
+          images = getActiveLibrary();
+
+          const savedTheme = localStorage.getItem("wallpaper_theme");
           const savedDeck = JSON.parse(
             localStorage.getItem("wallpaper_deck") || "[]",
           );
@@ -271,6 +347,14 @@
             localStorage.getItem("wallpaper_library") || "[]",
           );
           lastShown = localStorage.getItem("current_wallpaper") || "";
+
+          // If theme changed since last session, switch to current theme
+          if (savedTheme && savedTheme !== currentTheme) {
+            switchThemeDeck(currentTheme);
+            return;
+          }
+
+          localStorage.setItem("wallpaper_theme", currentTheme);
 
           // Seed library snapshot if not present
           if (!Array.isArray(savedLibrary) || savedLibrary.length === 0) {

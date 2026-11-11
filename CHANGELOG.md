@@ -1,3 +1,14 @@
+### [2026-11-10] Day/Night Appearance Deck Synchronization & WebKit Media Queries
+- **Scope:** `sync_day_night.py`, `sync_day_night.sh`, `add_walls.sh`, `index.html`, `index.personal.html`, `tests/test_day_night_theme.py`
+- **State Changes:**
+  1. **Dual Day/Night Partitioning (`sync_day_night.py`)**: Built automated synchronizer mapping `day.txt` (92 wallpapers) and `night.txt` (14 wallpapers) into slugged WebP arrays. Ignores stray metadata lines (`day.txt`, `night.txt`). Implements graceful default assigning any unclassified `.webp` to `dayImages`.
+  2. **Event-Driven OS Theme Detection**: Integrated WebKit `window.matchMedia("(prefers-color-scheme: dark)")` with 0% CPU consumption. Automatically catches macOS sunrise/sunset appearance changes and toggles between day and night Fisher-Yates shuffle decks.
+  3. **Idempotent Deck Switching**: Switches decks dynamically across long uptimes without memory leaks, preserving boundary deduplication and active library state.
+  4. **Automated Verification Suite (`tests/test_day_night_theme.py`)**: Added 5 automated WebKit Playwright tests validating light/dark media emulation, deck switching, set disjointness, and graceful default assignment.
+- **Dependencies Introduced/Modified:** None
+- **Side Effects / Boundaries:** Preserves full backwards compatibility with `images` variable for existing tests. Both `index.html` and `index.personal.html` updated.
+- **Verification Token:** 25/25 automated tests passing across 7 test suites in 13.12s.
+
 ### [2026-10-31] Menu Bar Optical Lens Performance Optimization (Adaptive 15 FPS & Visibility Suspension)
 - **Scope:** `liquid-glass-web-main/src/core/types.ts`, `liquid-glass-web-main/src/core/SceneOpticalLens.ts`, `liquid-glass-web-main/src/core/LiquidGlass.ts`, `liquid-glass.umd.js`, `index.html`, `index.personal.html`, `tests/test_performance_opt.py`
 - **State Changes:**
